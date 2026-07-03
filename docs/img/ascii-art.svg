@@ -1,44 +1,44 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="300" height="293" viewBox="0 0 300 293" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,&quot;DejaVu Sans Mono&quot;,monospace" font-size="15">
-<rect width="300" height="293" rx="8" fill="#0d1117"/>
-<rect width="300" height="30" rx="8" fill="#161b22"/>
-<rect y="22" width="300" height="8" fill="#161b22"/>
-<circle cx="18" cy="15" r="6" fill="#ff5f56"/>
-<circle cx="38" cy="15" r="6" fill="#ffbd2e"/>
-<circle cx="58" cy="15" r="6" fill="#27c93f"/>
-<text x="16" y="58" xml:space="preserve">
-<tspan x="16" fill="#8be9fd"> ______________________ </tspan>
+<svg xmlns="http://www.w3.org/2000/svg" width="300" height="280" viewBox="0 0 300 280" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,&quot;DejaVu Sans Mono&quot;,&quot;Liberation Mono&quot;,monospace" font-size="14">
+<rect width="300" height="280" rx="8" fill="#0d1117"/>
+<rect width="300" height="28" rx="8" fill="#161b22"/>
+<rect y="20" width="300" height="8" fill="#161b22"/>
+<circle cx="16" cy="14" r="5.5" fill="#ff5f56"/>
+<circle cx="34" cy="14" r="5.5" fill="#ffbd2e"/>
+<circle cx="52" cy="14" r="5.5" fill="#27c93f"/>
+<text y="58" xml:space="preserve">
+<tspan x="16.0" textLength="201.6" lengthAdjust="spacingAndGlyphs" fill="#8be9fd"> ______________________ </tspan>
 </text>
-<text x="16" y="79" xml:space="preserve">
-<tspan x="16" fill="#8be9fd">|  __________________  |</tspan>
+<text y="78" xml:space="preserve">
+<tspan x="16.0" textLength="201.6" lengthAdjust="spacingAndGlyphs" fill="#8be9fd">|  __________________  |</tspan>
 </text>
-<text x="16" y="100" xml:space="preserve">
-<tspan x="16" fill="#8be9fd">| |                  | |</tspan>
+<text y="98" xml:space="preserve">
+<tspan x="16.0" textLength="201.6" lengthAdjust="spacingAndGlyphs" fill="#8be9fd">| |                  | |</tspan>
 </text>
-<text x="16" y="121" xml:space="preserve">
-<tspan x="16" fill="#8be9fd">| |  </tspan>
-<tspan fill="#5af78e">&gt; Carlboms Data</tspan>
-<tspan fill="#8be9fd"> | |</tspan>
+<text y="118" xml:space="preserve">
+<tspan x="16.0" textLength="42.0" lengthAdjust="spacingAndGlyphs" fill="#8be9fd">| |  </tspan>
+<tspan x="58.0" textLength="126.0" lengthAdjust="spacingAndGlyphs" fill="#5af78e">&gt; Carlboms Data</tspan>
+<tspan x="184.0" textLength="33.6" lengthAdjust="spacingAndGlyphs" fill="#8be9fd"> | |</tspan>
 </text>
-<text x="16" y="142" xml:space="preserve">
-<tspan x="16" fill="#8be9fd">| |__________________| |</tspan>
+<text y="138" xml:space="preserve">
+<tspan x="16.0" textLength="201.6" lengthAdjust="spacingAndGlyphs" fill="#8be9fd">| |__________________| |</tspan>
 </text>
-<text x="16" y="163" xml:space="preserve">
-<tspan x="16" fill="#8be9fd">|______________________|</tspan>
+<text y="158" xml:space="preserve">
+<tspan x="16.0" textLength="201.6" lengthAdjust="spacingAndGlyphs" fill="#8be9fd">|______________________|</tspan>
 </text>
-<text x="16" y="184" xml:space="preserve">
-<tspan x="16" fill="#8be9fd">    \____________/      </tspan>
+<text y="178" xml:space="preserve">
+<tspan x="16.0" textLength="201.6" lengthAdjust="spacingAndGlyphs" fill="#8be9fd">    \____________/      </tspan>
 </text>
-<text x="16" y="205" xml:space="preserve">
-<tspan x="16" fill="#c9d1d9"> Host   : cloud-server-10141984</tspan>
+<text y="198" xml:space="preserve">
+<tspan x="16.0" textLength="260.4" lengthAdjust="spacingAndGlyphs" fill="#c9d1d9"> Host   : cloud-server-10141984</tspan>
 </text>
-<text x="16" y="226" xml:space="preserve">
-<tspan x="16" fill="#c9d1d9"> VPN IP : 100.91.68.49</tspan>
+<text y="218" xml:space="preserve">
+<tspan x="16.0" textLength="184.8" lengthAdjust="spacingAndGlyphs" fill="#c9d1d9"> VPN IP : 100.91.68.49</tspan>
 </text>
-<text x="16" y="247" xml:space="preserve">
-<tspan x="16" fill="#c9d1d9"> Uptime : 3 days, 4 hours</tspan>
+<text y="238" xml:space="preserve">
+<tspan x="16.0" textLength="210.0" lengthAdjust="spacingAndGlyphs" fill="#c9d1d9"> Uptime : 3 days, 4 hours</tspan>
 </text>
-<text x="16" y="268" xml:space="preserve">
-<tspan x="16" fill="#c9d1d9"> </tspan>
-<tspan fill="#ff6b6b">*** System restart required ***</tspan>
+<text y="258" xml:space="preserve">
+<tspan x="16.0" textLength="8.4" lengthAdjust="spacingAndGlyphs" fill="#c9d1d9"> </tspan>
+<tspan x="24.4" textLength="260.4" lengthAdjust="spacingAndGlyphs" fill="#ff6b6b">*** System restart required ***</tspan>
 </text>
 </svg>

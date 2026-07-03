@@ -2,7 +2,7 @@
    {{BOLD}}Carlboms Data AB{{RESET}}  {{DIM}}// homelab{{RESET}}
 {{CYAN}}========================================{{RESET}}
  Host    : {{HOSTNAME}}
- VPN IP  : {{GREEN}}{{VPNIP}}{{RESET}}
- CasaOS  : {{CYAN}}{{CASAOS}}{{RESET}}
+ VPN IP  : {{VPNIP}}
+ Web UI  : {{URL_WT0_PORT_80}}
  Ports   : {{PORTS}}
  {{REBOOT}}

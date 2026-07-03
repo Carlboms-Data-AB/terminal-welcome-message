@@ -1,12 +1,12 @@
 Copyright Carlboms Data AB
 ----------------------------------------
  Host    : {{HOSTNAME}}
- VPN IP  : {{VPNIP}}
+ OS      : {{OS}}
  IP      : {{IP}}
+ VPN IP  : {{VPNIP}}
  Uptime  : {{UPTIME}}
- Load    : {{LOAD}}
+ Load    : {{LOAD1}} {{LOAD5}} {{LOAD15}}
  Disk /  : {{DISK}}
- Memory  : {{MEMORY}}
+ Memory  : {{MEM}}
  Ports   : {{PORTS}}
- CasaOS  : {{CASAOS}}
  {{REBOOT}}

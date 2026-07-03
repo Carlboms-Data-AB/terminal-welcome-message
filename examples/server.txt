@@ -1,12 +1,14 @@
 {{BOLD}}{{CYAN}}Copyright Carlboms Data AB{{RESET}}
 ----------------------------------------
  Host    : {{HOSTNAME}}
- VPN IP  : {{VPNIP}}
- IP      : {{IP}}
+ OS      : {{OS}}
+ Kernel  : {{KERNEL}} ({{ARCH}})
  Uptime  : {{UPTIME}}
- Load    : {{LOAD}}
+ Load    : {{LOAD1}} {{LOAD5}} {{LOAD15}}
+ CPU temp: {{CPU_TEMP}}
+ Memory  : {{MEM}}
  Disk /  : {{DISK}}
- Memory  : {{MEMORY}}
+ IP      : {{IP}}
  Ports   : {{PORTS}}
- CasaOS  : {{CASAOS}}
+ Updates : {{UPDATES}}
  {{REBOOT}}
