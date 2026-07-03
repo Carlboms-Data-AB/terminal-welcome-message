@@ -69,9 +69,12 @@ PAD = 16
 TITLE_H = 28
 
 
+SENTINEL = "\x01"  # marks empty values so only token-empty lines drop (see renderer)
+
+
 def substitute_data(text):
     for name, val in SAMPLE.items():
-        text = text.replace("{{" + name + "}}", val)
+        text = text.replace("{{" + name + "}}", val if val else SENTINEL)
     return text
 
 
@@ -79,11 +82,13 @@ def drop_empty_lines(text):
     out = []
     for line in text.split("\n"):
         probe = ANY_COLOUR_RE.sub("", line)
+        has_s = SENTINEL in probe
+        probe = probe.replace(SENTINEL, "")
         if probe.strip() == "":
             continue
-        if re.search(r":\s*$", probe):
+        if has_s and re.search(r":\s*$", probe):
             continue
-        out.append(line)
+        out.append(line.replace(SENTINEL, ""))
     return out
 
 

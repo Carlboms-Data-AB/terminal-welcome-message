@@ -47,9 +47,10 @@ curl -fsSL .../setup.sh | sudo bash -s -- --uninstall            # remove
 ## Editing the banner
 
 `message.txt` is a template. Static text is shown as-is; `{{TOKENS}}` are
-replaced on each host with that host's live values. **A line whose token comes
-out empty is omitted** — so the reboot line only appears when a reboot is
-pending, the swap line only when swap exists, etc.
+replaced on each host with that host's live values. **A line is omitted only when
+a token in it resolves to empty** — so the reboot line only appears when a reboot
+is pending, the swap line only when swap exists, etc. Static lines with no token
+(e.g. a `Section:` header) are always kept.
 
 **Preview before you ship** with the bundled tool (runs anywhere — Mac or Linux,
 no root — using sample data, and flags typos):
@@ -155,6 +156,10 @@ Parameterised tokens resolved from whatever you write — no hardcoded apps:
 
 Example: a CasaOS dashboard reachable over your NetBird interface is just
 `{{URL_WT0_PORT_80}}`.
+
+Interface names in these tokens must be letters/digits only (`ETH0`, `WG0`,
+`WT0`) — matched case-insensitively; dotted/hyphenated names (e.g. `eth0.100`)
+aren't supported.
 </details>
 
 ### Colour & styling
@@ -181,9 +186,10 @@ GitHub. Emoji work too (they're UTF-8).
 
 Only the template **text** is fetched — never executable code. The renderer is
 installed **once, locally**, and treats the template as **data**: tokens are
-string-substituted, the template is **never executed** (no `eval`), and it's
-stripped of escape sequences before display. So even a compromised repo can only
-change banner text — not run code, even though the render runs as root at login.
+string-substituted, the template is **never executed** (no `eval`), and the ESC
+control byte is stripped so ANSI/OSC escape sequences can't render. So even a
+compromised repo can only change banner text — not run code, even though the
+render runs as root at login.
 
 ## Making it your own (forking)
 
@@ -194,6 +200,11 @@ The engine is generic. To run your own copy:
 - Everything installed uses neutral names (`terminal-welcome-*`, `00-welcome`),
   so nothing is tied to this org except the default `message.txt` text and the
   example branding — edit those to taste.
+- The default `message.txt` assumes a **NetBird `wt0`** interface and a **CasaOS**
+  dashboard (the `VPN IP` and `CasaOS` lines auto-hide where those are absent, but
+  swap in your own `{{IP_<IFACE>}}` / `{{URL_<IFACE>_PORT_<PORT>}}`).
+- Preview edits anywhere with `tools/preview.sh path/to/message.txt`, and stage on
+  one host first with `--url file://$PWD/message.txt` or `--branch my-edit`.
 
 ## Known edge cases
 

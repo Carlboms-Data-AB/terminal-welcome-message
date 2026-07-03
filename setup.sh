@@ -9,8 +9,8 @@
 #
 # Only the template TEXT is fetched from GitHub - never executable code. The
 # renderer is installed once, pinned, and treats the template as DATA (string
-# substitution, no eval), stripping escape sequences. See README for the token
-# catalogue and the security model.
+# substitution, no eval), stripping the ESC control byte so ANSI/OSC escape
+# sequences can't render. See README for the token catalogue and security model.
 #
 # Usage:
 #   curl -fsSL https://raw.githubusercontent.com/Carlboms-Data-AB/terminal-welcome-message/main/setup.sh | sudo bash
@@ -58,7 +58,14 @@ while [[ $# -gt 0 ]]; do
         --branch)   BRANCH="${2:?--branch needs a name}"; shift ;;
         --url)      MESSAGE_URL_OVERRIDE="${2:?--url needs a URL}"; shift ;;
         --uninstall) DO_UNINSTALL=true ;;
-        -h|--help)  grep '^#' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+        -h|--help)
+            if [[ -r "$0" && "$0" != bash && "$0" != -bash && "$0" != sh ]]; then
+                grep '^#' "$0" | sed 's/^# \{0,1\}//'
+            else
+                echo "terminal-welcome-message — options: --interval MIN | --branch NAME | --url URL | --uninstall"
+                echo "docs: https://github.com/Carlboms-Data-AB/terminal-welcome-message"
+            fi
+            exit 0 ;;
         *) echo "Unknown option: $1" >&2; exit 1 ;;
     esac
     shift
@@ -194,7 +201,7 @@ if command -v vcgencmd >/dev/null 2>&1; then
       [ $((n & 4)) -ne 0 ] && s="${s:+$s, }throttled"
       [ $((n & 2)) -ne 0 ] && s="${s:+$s, }arm-capped"
       [ $((n & 8)) -ne 0 ] && s="${s:+$s, }soft-temp-limit"
-      throttled="{{YELLOW}}${s}{{RESET}}"
+      [ -n "$s" ] && throttled="{{YELLOW}}${s}{{RESET}}"
     fi
   fi
 fi
@@ -206,35 +213,39 @@ mem=$(awk "$_h"' /^MemTotal:/{t=$2}/^MemAvailable:/{a=$2}END{if(t>0&&a!="")print
 mem_free=$(awk "$_h"' /^MemAvailable:/{a=$2}END{if(a!="")printf "%s",h(a)}' /proc/meminfo 2>/dev/null)
 swap=$(awk "$_h"' /^SwapTotal:/{t=$2}/^SwapFree:/{f=$2}END{if(t>0)printf "%s / %s",h(t-f),h(t)}' /proc/meminfo 2>/dev/null)
 
-# -- disk --
-disk=$(df -hP / 2>/dev/null | awk 'NR==2{print $5" of "$2}')
-disk_free=$(df -hP / 2>/dev/null | awk 'NR==2{print $4}')
-disk_total=$(df -hP / 2>/dev/null | awk 'NR==2{print $2}')
+# -- disk (one df) --
+dfl=$(df -hP / 2>/dev/null | awk 'NR==2')
+disk=$(printf '%s' "$dfl" | awk '{print $5" of "$2}')
+disk_free=$(printf '%s' "$dfl" | awk '{print $4}')
+disk_total=$(printf '%s' "$dfl" | awk '{print $2}')
 
-# -- network --
+# -- network (one route lookup) --
+route=$(ip -o route get 1.1.1.1 2>/dev/null)
 ips=$(ip -4 -o addr show scope global 2>/dev/null | awk '{split($4,a,"/");printf "%s%s (%s)",(NR>1?", ":""),a[1],$2}')
-ip4=$(ip -o route get 1.1.1.1 2>/dev/null | awk '{for(i=1;i<=NF;i++)if($i=="src"){print $(i+1);exit}}')
+ip4=$(printf '%s' "$route" | awk '{for(i=1;i<=NF;i++)if($i=="src"){print $(i+1);exit}}')
 ipv6=$(ip -6 -o addr show scope global 2>/dev/null | awk '$0!~/temporary/{split($4,a,"/");print a[1];exit}')
 [ -n "$ipv6" ] || ipv6=$(ip -6 -o addr show scope global 2>/dev/null | awk '{split($4,a,"/");print a[1];exit}')
 vpnip=$(ip -4 -o addr show 2>/dev/null | awk '{split($4,a,"/");if($2~/^(wt0|netbird)/){print a[1];exit}}')
 [ -n "$vpnip" ] || vpnip=$(ip -4 -o addr show scope global 2>/dev/null | awk '{split($4,a,"/");split(a[1],o,".");if(o[1]==100&&o[2]>=64&&o[2]<=127){print a[1];exit}}')
-iface=$(ip -o route get 1.1.1.1 2>/dev/null | awk '{for(i=1;i<=NF;i++)if($i=="dev"){print $(i+1);exit}}')
+iface=$(printf '%s' "$route" | awk '{for(i=1;i<=NF;i++)if($i=="dev"){print $(i+1);exit}}')
 [ -n "$iface" ] || iface=$(ip -o route show default 2>/dev/null | awk '{for(i=1;i<=NF;i++)if($i=="dev"){print $(i+1);exit}}')
-gateway=$(ip -o route get 1.1.1.1 2>/dev/null | awk '{for(i=1;i<=NF;i++)if($i=="via"){print $(i+1);exit}}')
+gateway=$(printf '%s' "$route" | awk '{for(i=1;i<=NF;i++)if($i=="via"){print $(i+1);exit}}')
 dns=''
 if command -v resolvectl >/dev/null 2>&1; then
-  dns=$(resolvectl dns 2>/dev/null | awk '{for(i=1;i<=NF;i++)if($i~/[.:]/&&$i~/^[0-9a-fA-F:.]+$/)print $i}' | awk '!s[$0]++' | paste -sd, - | sed 's/,/, /g')
+  dns=$(timeout 2 resolvectl dns 2>/dev/null | awk '{for(i=1;i<=NF;i++)if($i~/[.:]/&&$i~/^[0-9a-fA-F:.]+$/)print $i}' | awk '!s[$0]++' | paste -sd, - | sed 's/,/, /g')
 fi
 [ -n "$dns" ] || dns=$(awk '/^nameserver/{print $2}' /etc/resolv.conf 2>/dev/null | grep -v '^127\.0\.0\.53$' | awk '!s[$0]++' | paste -sd, - | sed 's/,/, /g')
 mac=''; [ -n "$iface" ] && mac=$(cat /sys/class/net/"$iface"/address 2>/dev/null)
-ports=$(ss -tlnH 2>/dev/null | awk '{print $4}' | grep -vE '^(127\.|\[::1\])' | sed 's/.*://' | grep -E '^[0-9]+$' | sort -un | paste -sd',' - | sed 's/,/, /g')
+# ss without -H (portable to old iproute2); skip the header row in awk instead.
+ports=$(ss -tln 2>/dev/null | awk 'NR>1{print $4}' | grep -vE '^(127\.|\[::1\])' | sed 's/.*://' | grep -E '^[0-9]+$' | sort -un | paste -sd, - | sed 's/,/, /g')
 
 # -- services --
 docker=''
 for eng in docker podman; do
   command -v "$eng" >/dev/null 2>&1 || continue
   if names=$(timeout 2 "$eng" ps --format '{{.Names}}' 2>/dev/null); then
-    c=$(printf '%s\n' "$names" | grep -c . ); [ "${c:-0}" -gt 0 ] && docker="$c running ($(printf '%s' "$names" | paste -sd', ' -))"
+    c=$(printf '%s\n' "$names" | grep -c . )
+    [ "${c:-0}" -gt 0 ] && docker="$c running ($(printf '%s' "$names" | paste -sd, - | sed 's/,/, /g'))"
     break
   fi
 done
@@ -243,20 +254,31 @@ if [ -d /run/systemd/system ] && command -v systemctl >/dev/null 2>&1; then
   fn=$(systemctl list-units --state=failed --no-legend --plain 2>/dev/null | awk 'END{print NR+0}')
   [ "${fn:-0}" -gt 0 ] && failed="{{YELLOW}}${fn} failed unit(s){{RESET}}"
 fi
-# -- sessions --
-users=$(who 2>/dev/null | awk 'NF{u[$1]=1}END{n=0;for(k in u)n++;if(n>0)print n}')
-sessions=$(who 2>/dev/null | awk 'END{if(NR>0)print NR}')
-who_list=$(who 2>/dev/null | awk '{print $1}' | sort -u | paste -sd, - | sed 's/,/, /g')
+# -- sessions (one who) --
+whoout=$(who 2>/dev/null)
+users=$(printf '%s' "$whoout" | awk 'NF{u[$1]=1}END{n=0;for(k in u)n++;if(n>0)print n}')
+sessions=$(printf '%s' "$whoout" | awk 'NF{n++}END{if(n>0)print n}')
+who_list=$(printf '%s' "$whoout" | awk 'NF{print $1}' | sort -u | paste -sd, - | sed 's/,/, /g')
 reboot=''
 if [ -f /run/reboot-required ] || [ -f /var/run/reboot-required ]; then
   reboot='{{RED}}*** System restart required ***{{RESET}}'
-elif command -v needs-restarting >/dev/null 2>&1 && ! needs-restarting -r >/dev/null 2>&1; then
+elif command -v needs-restarting >/dev/null 2>&1 && ! timeout 3 needs-restarting -r >/dev/null 2>&1; then
   reboot='{{RED}}*** System restart required ***{{RESET}}'
 fi
 
 # -- cached (written by terminal-welcome-update on the timer) --
 pubip=$(cat "$CACHE/pubip" 2>/dev/null)
 updates=$(cat "$CACHE/updates" 2>/dev/null)
+
+# Mark empty values with a sentinel byte so a line hides ONLY when its token(s)
+# resolved to empty - a genuine static "Section:" header (no token) is kept.
+SOH=$(printf '\001')
+for _v in host fqdn os os_id kernel arch model date_v time_v tz up booted \
+          cpu cores load1 load5 load15 temp throttled memory mem mem_free swap \
+          disk disk_free disk_total ips ip4 ipv6 vpnip iface gateway dns mac ports \
+          docker failed users sessions who_list reboot pubip updates; do
+    declare -n _ref="$_v"; [ -n "$_ref" ] || _ref=$SOH; unset -n _ref
+done
 
 # -- substitute (pure string replacement; template never executed) --
 out=$tpl
@@ -291,26 +313,29 @@ out=${out//'{{PUBIP}}'/$pubip};        out=${out//'{{UPDATES}}'/$updates}
 for tok in $(printf '%s' "$out" | grep -oE '\{\{IP_[A-Z0-9]+\}\}' | sort -u); do
     ifc=$(printf '%s' "$tok" | sed -E 's/^\{\{IP_([A-Z0-9]+)\}\}$/\1/' | tr '[:upper:]' '[:lower:]')
     v=$(ip -4 -o addr show dev "$ifc" 2>/dev/null | awk '{split($4,a,"/");print a[1];exit}')
+    [ -n "$v" ] || v=$SOH
     out=${out//"$tok"/$v}
 done
 for tok in $(printf '%s' "$out" | grep -oE '\{\{URL_[A-Z0-9]+_PORT_[0-9]+\}\}' | sort -u); do
     ifc=$(printf '%s' "$tok" | sed -E 's/^\{\{URL_([A-Z0-9]+)_PORT_[0-9]+\}\}$/\1/' | tr '[:upper:]' '[:lower:]')
     prt=$(printf '%s' "$tok" | sed -E 's/^.*_PORT_([0-9]+)\}\}$/\1/')
     hip=$(ip -4 -o addr show dev "$ifc" 2>/dev/null | awk '{split($4,a,"/");print a[1];exit}')
-    v=''
+    v=$SOH
     if [ -n "$hip" ]; then
         case "$prt" in 443) v="https://$hip" ;; 80) v="http://$hip" ;; *) v="http://$hip:$prt" ;; esac
     fi
     out=${out//"$tok"/$v}
 done
 
-# Drop lines that are effectively empty - whitespace-only, or "Label : " with an
-# empty value - even when they still carry colour tokens. Then strip stray bytes.
-out=$(printf '%s\n' "$out" | awk '
+# Drop a line ONLY when a token in it resolved to empty (marked with the sentinel)
+# and nothing else remains - whitespace-only, or "Label : " with an empty value.
+# Static lines with no token (e.g. a "Section:" header) are always kept.
+out=$(printf '%s\n' "$out" | awk -v S="$SOH" '
     { p=$0; gsub(/\{\{(RESET|BOLD|DIM|RED|GREEN|YELLOW|BLUE|MAGENTA|CYAN|WHITE)\}\}/,"",p)
+      hasS=(index(p,S)>0); gsub(S,"",p)
       if (p ~ /^[[:space:]]*$/) next
-      if (p ~ /:[[:space:]]*$/)  next
-      print }' | LC_ALL=C tr -cd '\11\12\40-\176\200-\377')
+      if (hasS && p ~ /:[[:space:]]*$/) next
+      line=$0; gsub(S,"",line); print line }' | LC_ALL=C tr -cd '\11\12\40-\176\200-\377')
 
 # Colour markup: this LOCAL, trusted renderer turns safe {{COLOUR}} tokens into
 # SGR escapes AFTER sanitising - so no escape sequence ever travels from GitHub.
@@ -410,7 +435,6 @@ chmod 0644 "$PROFILE_SNIPPET"
 # (Fedora/RHEL reach /etc/profile.d/*.sh for non-login shells via /etc/bashrc.)
 if [[ -f "$BASHRC" ]] && ! grep -qF "$HOOK_MARK" "$BASHRC"; then
     cat >> "$BASHRC" <<EOF
-
 $HOOK_MARK
 [ -r "$PROFILE_SNIPPET" ] && . "$PROFILE_SNIPPET"
 # <<< terminal-welcome hook <<<

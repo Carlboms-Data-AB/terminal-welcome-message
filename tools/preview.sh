@@ -14,7 +14,8 @@ FILE=${1:-message.txt}
 out=$(cat "$FILE")
 
 # ---- sample values (kept in sync with the renderer's token set) -------------
-sub() { out=${out//"{{$1}}"/$2}; }
+SOH=$(printf '\001')                          # sentinel marks empty values (see drop below)
+sub() { v=$2; [ -n "$v" ] || v=$SOH; out=${out//"{{$1}}"/$v}; }
 sub HOSTNAME   "cloud-server-10141984"
 sub FQDN       "cloud-server-10141984.example.net"
 sub OS         "Ubuntu 24.04.3 LTS"
@@ -70,12 +71,13 @@ for tok in $(printf '%s' "$out" | grep -oE '\{\{URL_[A-Z0-9]+_PORT_[0-9]+\}\}' |
     out=${out//"$tok"/$v}
 done
 
-# ---- same empty-line drop as the renderer -----------------------------------
-out=$(printf '%s\n' "$out" | awk '
+# ---- same sentinel-based empty-line drop as the renderer --------------------
+out=$(printf '%s\n' "$out" | awk -v S="$SOH" '
     { p=$0; gsub(/\{\{(RESET|BOLD|DIM|RED|GREEN|YELLOW|BLUE|MAGENTA|CYAN|WHITE)\}\}/,"",p)
+      hasS=(index(p,S)>0); gsub(S,"",p)
       if (p ~ /^[[:space:]]*$/) next
-      if (p ~ /:[[:space:]]*$/)  next
-      print }')
+      if (hasS && p ~ /:[[:space:]]*$/) next
+      line=$0; gsub(S,"",line); print line }')
 
 # ---- warn about leftover (unknown / misspelled) tokens ----------------------
 leftover=$(printf '%s' "$out" | grep -oE '\{\{[A-Za-z0-9_]+\}\}' \

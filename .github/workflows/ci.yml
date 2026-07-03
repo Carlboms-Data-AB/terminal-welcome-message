@@ -62,37 +62,39 @@ jobs:
           test ! -e /etc/update-motd.d/00-carlboms-welcome
           systemctl is-enabled terminal-welcome.timer
           test -s /etc/terminal-welcome/disabled-motd.d
+          test -s /etc/terminal-welcome/message                     # fetch worked
           if [ -e /etc/update-motd.d/10-help-text ]; then test ! -x /etc/update-motd.d/10-help-text; fi
 
-      - name: Assert rendered content (default template)
-        run: |
-          set -euo pipefail
-          out=$(sudo /usr/local/sbin/terminal-welcome-render); echo "$out"
-          grep -q 'Copyright Carlboms Data AB' <<<"$out"
-          grep -q 'Host    :'                  <<<"$out"
-          grep -Eq 'VPN IP  : 100\.64\.0\.5'   <<<"$out"
-          grep -q '8099'                       <<<"$out"
-
-      - name: Assert generic tokens + colour + emoji + reboot
+      - name: Assert engine renders (controlled template, independent of message.txt)
         run: |
           set -euo pipefail
           sudo systemctl stop terminal-welcome.timer 2>/dev/null || true
           sudo touch /var/run/reboot-required
           sudo tee /etc/terminal-welcome/message >/dev/null <<'TPL'
           {{CYAN}}hi{{RESET}} 🚀
-           IPWT0 : {{IP_WT0}}
-           URL8  : {{URL_WT0_PORT_8080}}
-           URL443: {{URL_WT0_PORT_443}}
+           Host   : {{HOSTNAME}}
+           VPN IP : {{VPNIP}}
+           IPWT0  : {{IP_WT0}}
+           URL8   : {{URL_WT0_PORT_8080}}
+           URL443 : {{URL_WT0_PORT_443}}
+           Ports  : {{PORTS}}
+           Section:
+           Gone   : {{THROTTLED}}
            {{REBOOT}}
           TPL
           out=$(sudo /usr/local/sbin/terminal-welcome-render)
           echo "$out" | sed 's/\x1b/<ESC>/g'
           esc=$(printf '\033'); case "$out" in *"$esc"*) : ;; *) echo "no colour"; exit 1 ;; esac
-          printf '%s' "$out" | grep -q '🚀'
-          grep -q '100.64.0.5'               <<<"$out"     # {{IP_WT0}}
-          grep -q 'http://100.64.0.5:8080'   <<<"$out"     # {{URL_WT0_PORT_8080}}
-          grep -q 'https://100.64.0.5'       <<<"$out"     # {{URL_WT0_PORT_443}} -> https, no port
-          grep -q 'System restart required'  <<<"$out"
+          printf '%s'   "$out" | grep -q '🚀'                       # emoji preserved
+          printf '%s\n' "$out" | grep -q 'Host   : '                # {{HOSTNAME}} resolved
+          printf '%s\n' "$out" | grep -q 'VPN IP : 100.64.0.5'      # {{VPNIP}}
+          printf '%s\n' "$out" | grep -q 'IPWT0  : 100.64.0.5'      # {{IP_WT0}}
+          printf '%s\n' "$out" | grep -q 'URL8   : http://100.64.0.5:8080'
+          printf '%s\n' "$out" | grep -q 'URL443 : https://100.64.0.5'
+          printf '%s\n' "$out" | grep -q '8099'                     # a listening port
+          printf '%s\n' "$out" | grep -q 'Section:'                 # static header KEPT (sentinel fix)
+          if printf '%s\n' "$out" | grep -q 'Gone'; then echo "empty-value line not dropped"; exit 1; fi
+          printf '%s\n' "$out" | grep -q 'System restart required'
 
       - name: Re-run install is idempotent (ledger must survive)
         run: |
@@ -139,12 +141,14 @@ jobs:
           fi
       - name: Install from the working tree (root, no systemd -> cron/none path)
         run: bash setup.sh --url "file://$PWD/message.txt"
-      - name: Assert the banner renders
+      - name: Assert the banner renders (controlled template)
         run: |
           set -eu
+          test -s /etc/terminal-welcome/message                     # fetch worked
+          printf 'MARKER-OK host={{HOSTNAME}}\n Section:\n' > /etc/terminal-welcome/message
           out=$(/usr/local/sbin/terminal-welcome-render); echo "$out"
-          printf '%s\n' "$out" | grep -q 'Copyright Carlboms Data AB'
-          printf '%s\n' "$out" | grep -q 'Host    :'
+          printf '%s\n' "$out" | grep -q 'MARKER-OK host='          # engine renders a token
+          printf '%s\n' "$out" | grep -q 'Section:'                 # static header kept
       - name: Assert colour + emoji rendering
         run: |
           set -eu
