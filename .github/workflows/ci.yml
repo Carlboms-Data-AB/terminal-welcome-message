@@ -68,6 +68,7 @@ jobs:
           grep -q 'Copyright' /etc/terminal-welcome/message
           test -s /etc/terminal-welcome/disabled-motd.d
           test -x /usr/local/sbin/terminal-welcome-uninstall        # local uninstaller present
+          test -x /usr/local/sbin/terminal-welcome                  # local menu launcher present
           test ! -e /usr/local/sbin/terminal-welcome-update         # no updater in local mode
           test ! -e /etc/systemd/system/terminal-welcome.timer      # no sync timer
           test ! -e /etc/cron.d/terminal-welcome                    # no cron
@@ -171,8 +172,9 @@ jobs:
           esc=$(printf '\033'); case "$out" in *"$esc"*) : ;; *) echo "no colour"; exit 1 ;; esac
           printf '%s' "$out" | grep -q '✅'
           if printf '%s' "$out" | grep -q '{{'; then echo "leftover tokens"; exit 1; fi
-      - name: Uninstall
+      - name: Uninstall (local uninstaller, no flags)
         run: |
           set -eu
-          bash setup.sh --uninstall
+          /usr/local/sbin/terminal-welcome-uninstall
           test ! -e /etc/terminal-welcome
+          test ! -e /usr/local/sbin/terminal-welcome

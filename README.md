@@ -26,33 +26,39 @@ host's `/etc/terminal-welcome/message` to adopt it:
 
 ## Install
 
-Runnable as-is on Raspberry Pi OS / Debian / Ubuntu / Fedora / RHEL / Arch:
+**One command, a menu — no flags.** Run it in a terminal and pick an action.
+Works on Raspberry Pi OS / Debian / Ubuntu / Fedora / RHEL / Arch:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/Carlboms-Data-AB/terminal-welcome-message/main/setup.sh | sudo bash
 ```
 
-That's the whole install — it bootstraps from GitHub, sets up the renderer and a
-local banner file, and then never contacts GitHub again. Re-run the same line any
-time to update the engine; it won't touch a banner you've edited on the host.
+```
+  Terminal Welcome Message
+  ========================
+   1) Install / update (local)
+   2) Edit the banner
+   3) Preview
+   4) Uninstall
+   5) Quit
+```
 
-| Option | Meaning |
-|--------|---------|
-| `--uninstall` | undo the install and restore the box |
-| `-h`, `--help` | show usage |
-
-To remove it later, run the local uninstaller on the host — no network needed:
+After installing, reopen the same menu on the host with **no network**:
 
 ```bash
-sudo terminal-welcome-uninstall                                 # remove (local)
-# or, equivalently, re-fetch and pass the flag:
-curl -fsSL .../setup.sh | sudo bash -s -- --uninstall
+sudo terminal-welcome
 ```
+
+The install bootstraps from GitHub, sets up the renderer and a local banner file,
+then never contacts GitHub again. Re-running never overwrites a banner you've
+edited on the host. (Piped with no terminal — e.g. CI/automation — it just
+installs, no menu.)
 
 ## Editing the banner
 
-The banner is the file **`/etc/terminal-welcome/message` on the host**. Edit it
-there and the change shows at the next login — instantly, no sync, no GitHub:
+Pick **Edit the banner** from the menu (`sudo terminal-welcome`) — or edit the
+file directly. Either way it's the file **`/etc/terminal-welcome/message` on the
+host**, and the change shows at the next login (instant, no sync, no GitHub):
 
 ```bash
 sudo nano /etc/terminal-welcome/message       # edit on the box

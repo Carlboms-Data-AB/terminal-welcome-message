@@ -13,21 +13,18 @@
 # substitution, no eval), stripping the ESC control byte so ANSI/OSC escape
 # sequences can't render. See README for the token catalogue and security model.
 #
+# ONE command, no flags: run it in a terminal and you get a menu (install / edit /
+# preview / uninstall). Piped with no terminal (automation), it just installs.
+#
 # Usage:
 #   curl -fsSL https://raw.githubusercontent.com/Carlboms-Data-AB/terminal-welcome-message/main/setup.sh | sudo bash
-#   curl -fsSL .../setup.sh | sudo bash -s -- --uninstall
-#   (or, on an already-installed host, remove it locally with no network:
-#    sudo terminal-welcome-uninstall)
 #
-# Options:
-#   --uninstall          remove everything and restore the box
-#   -h, --help           show this header
+# After installing, reopen the menu on the host (no network) with:
+#   sudo terminal-welcome
 #
 set -euo pipefail
 
 # ---- Configuration ----------------------------------------------------------
-
-DO_UNINSTALL=false
 
 CONF_DIR=/etc/terminal-welcome
 CONF_FILE="$CONF_DIR/welcome.conf"         # legacy synced-install config - removed on install
@@ -38,6 +35,7 @@ DISABLED_LIST="$CONF_DIR/disabled-motd.d"
 UPDATER=/usr/local/sbin/terminal-welcome-update   # legacy sync job - removed on install
 RENDERER=/usr/local/sbin/terminal-welcome-render
 LOCAL_UNINSTALL=/usr/local/sbin/terminal-welcome-uninstall   # self-contained local remover (no network)
+LAUNCHER=/usr/local/sbin/terminal-welcome                    # the local menu (edit / preview / uninstall)
 MOTDD_SCRIPT=/etc/update-motd.d/00-welcome
 MOTDD_LEGACY=/etc/update-motd.d/00-carlboms-welcome   # pre-rename installs
 PROFILE_SNIPPET=/etc/profile.d/zz-terminal-welcome.sh
@@ -47,25 +45,7 @@ TIMER=/etc/systemd/system/terminal-welcome.timer
 CRON=/etc/cron.d/terminal-welcome
 HOOK_MARK="# >>> terminal-welcome hook >>>"
 
-# ---- Option parsing ---------------------------------------------------------
-
-while [[ $# -gt 0 ]]; do
-    case "$1" in
-        --uninstall) DO_UNINSTALL=true ;;
-        -h|--help)
-            if [[ -r "$0" && "$0" != bash && "$0" != -bash && "$0" != sh ]]; then
-                grep '^#' "$0" | sed 's/^# \{0,1\}//'
-            else
-                echo "terminal-welcome-message — options: --uninstall | -h"
-                echo "docs: https://github.com/Carlboms-Data-AB/terminal-welcome-message"
-            fi
-            exit 0 ;;
-        *) echo "Unknown option: $1" >&2; exit 1 ;;
-    esac
-    shift
-done
-
-[[ $EUID -eq 0 ]] || { echo "ERROR: run as root (sudo $0)" >&2; exit 1; }
+[[ $EUID -eq 0 ]] || { echo "ERROR: run as root (sudo bash setup.sh)" >&2; exit 1; }
 
 has_systemd() { [[ -d /run/systemd/system ]]; }
 use_update_motd_d() { [[ -d /etc/update-motd.d ]]; }
@@ -78,7 +58,7 @@ uninstall_body() {
         systemctl disable --now terminal-welcome.timer 2>/dev/null || true
         rm -f "$TIMER" "$SVC"; systemctl daemon-reload 2>/dev/null || true
     fi
-    rm -f "$CRON" "$UPDATER" "$RENDERER" "$LOCAL_UNINSTALL" "$PROFILE_SNIPPET" "$MOTDD_SCRIPT" "$MOTDD_LEGACY"
+    rm -f "$CRON" "$UPDATER" "$RENDERER" "$LOCAL_UNINSTALL" "$LAUNCHER" "$PROFILE_SNIPPET" "$MOTDD_SCRIPT" "$MOTDD_LEGACY"
 
     if [[ -f "$BASHRC" ]] && grep -qF "$HOOK_MARK" "$BASHRC"; then
         sed -i "/$(printf '%s' "$HOOK_MARK" | sed 's/[.[*^$/]/\\&/g')/,/# <<< terminal-welcome hook <<</d" "$BASHRC"
@@ -97,10 +77,9 @@ uninstall_body() {
     rm -rf "$CONF_DIR" "$CACHE_DIR"
     echo "Done."
 }
-$DO_UNINSTALL && { uninstall_body; exit 0; }
+# ---- Install (one action of the menu) ---------------------------------------
 
-# ---- Install ----------------------------------------------------------------
-
+do_install() {
 RENDER_TO_MOTD=true
 use_update_motd_d && RENDER_TO_MOTD=false
 
@@ -364,14 +343,14 @@ RENDER_EOF
 chmod 0755 "$RENDERER"; chown root:root "$RENDERER"
 
 # ---- Local uninstaller: a self-contained remover so uninstall needs no network.
-#      Generated from the SAME uninstall_body used by 'setup.sh --uninstall', with
-#      the resolved paths baked in - so the two can never drift.
+#      Generated from the SAME uninstall_body the menu's Uninstall uses, with the
+#      resolved paths baked in - so the two can never drift.
 { printf '#!/usr/bin/env bash\nset -u\n'
   # shellcheck disable=SC2016  # the $EUID is meant to be literal in the generated script
   printf '[[ $EUID -eq 0 ]] || { echo "run as root: sudo terminal-welcome-uninstall" >&2; exit 1; }\n'
   declare -p CONF_DIR CACHE_DIR MOTD_BACKUP DISABLED_LIST UPDATER RENDERER \
              MOTDD_SCRIPT MOTDD_LEGACY PROFILE_SNIPPET BASHRC SVC TIMER CRON \
-             HOOK_MARK LOCAL_UNINSTALL
+             HOOK_MARK LOCAL_UNINSTALL LAUNCHER
   declare -f has_systemd uninstall_body
   printf 'uninstall_body\n'
 } > "$LOCAL_UNINSTALL"
@@ -440,12 +419,79 @@ fi
 echo
 echo "Installed. Banner is live — fully local, no GitHub sync."
 echo "  Render   : $( use_update_motd_d && echo 'live at each login (/etc/update-motd.d)' || echo 'onto /etc/motd now (snapshot on this distro; live in interactive shells)' )"
-echo "  Edit     : sudo nano $STATE"
-echo "             (takes effect immediately; re-running setup.sh won't overwrite it)"
+echo "  Menu     : sudo terminal-welcome     (edit / preview / uninstall - local, no network)"
+echo "  Edit file: sudo nano $STATE"
 echo "  Preview  : sudo $RENDERER"
-echo "  Uninstall: sudo terminal-welcome-uninstall   (local, no network)"
 echo
 echo "Current banner on this host:"
 echo "----------------------------------------"
 "$RENDERER" 2>/dev/null || true
 echo "----------------------------------------"
+
+# Install the local menu launcher so the whole thing stays one command on the
+# host with no network. Built from the action functions so it can't drift.
+{ printf '#!/usr/bin/env bash\nset -u\n'
+  # shellcheck disable=SC2016  # $EUID is meant to be literal in the generated script
+  printf '[[ $EUID -eq 0 ]] || { echo "run as root: sudo terminal-welcome" >&2; exit 1; }\n'
+  declare -p CONF_DIR CACHE_DIR STATE MOTD_BACKUP DISABLED_LIST UPDATER RENDERER \
+             LOCAL_UNINSTALL LAUNCHER MOTDD_SCRIPT MOTDD_LEGACY PROFILE_SNIPPET \
+             BASHRC SVC TIMER CRON HOOK_MARK
+  declare -f has_systemd uninstall_body do_preview do_edit menu_local
+  printf 'menu_local\n'
+} > "$LAUNCHER"
+chmod 0755 "$LAUNCHER"; chown root:root "$LAUNCHER"
+}
+
+# ---- Menu actions -----------------------------------------------------------
+
+do_preview() {
+    if [[ -x "$RENDERER" ]]; then "$RENDERER" || true; else echo "(not installed yet — choose Install)"; fi
+}
+
+do_edit() {
+    [[ -e "$STATE" ]] || { echo "Not installed yet — choose Install first."; return 0; }
+    "${EDITOR:-nano}" "$STATE" </dev/tty >/dev/tty 2>&1 || true
+    echo "----- preview -----"; "$RENDERER" 2>/dev/null || true
+}
+
+# Post-install menu, installed to the host as 'terminal-welcome'.
+# shellcheck disable=SC2329  # invoked indirectly from the generated launcher
+menu_local() {
+    exec 3</dev/tty 2>/dev/null || { echo "no terminal"; exit 1; }
+    while true; do
+        printf '\n  Terminal Welcome Message\n  ========================\n'
+        printf '   1) Edit the banner\n   2) Preview\n   3) Uninstall\n   4) Quit\n  Choose [1-4]: '
+        read -r c <&3 || c=4
+        case "$c" in
+            1) do_edit ;;
+            2) do_preview; printf '\n  [enter] '; read -r _ <&3 || true ;;
+            3) uninstall_body; exit 0 ;;
+            4) exit 0 ;;
+            *) : ;;
+        esac
+    done
+}
+
+# Full menu for the installer (adds Install / update).
+menu() {
+    while true; do
+        printf '\n  Terminal Welcome Message\n  ========================\n'
+        printf '   1) Install / update (local)\n   2) Edit the banner\n   3) Preview\n   4) Uninstall\n   5) Quit\n  Choose [1-5]: '
+        read -r c <&3 || c=5
+        case "$c" in
+            1) do_install ;;
+            2) do_edit ;;
+            3) do_preview; printf '\n  [enter] '; read -r _ <&3 || true ;;
+            4) uninstall_body; exit 0 ;;
+            5) exit 0 ;;
+            *) : ;;
+        esac
+    done
+}
+
+# ---- Entry point: real terminal -> menu; piped/no terminal -> just install ---
+if [[ -t 1 ]] && exec 3</dev/tty 2>/dev/null; then
+    menu
+else
+    do_install
+fi
