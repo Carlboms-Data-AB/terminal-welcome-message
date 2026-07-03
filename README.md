@@ -1,10 +1,12 @@
 # terminal-welcome-message
 
-A custom login banner (MOTD) for Linux hosts. Install it with one command; after
-that it's **fully local** — the banner lives in `/etc/terminal-welcome/message`
-on each host and you edit it **right on the box**. Nothing is fetched from GitHub
-after setup. The renderer fills in **live, per-host values** (IP, uptime,
-temperature, listening ports, reboot status …) at display time.
+A custom login banner (MOTD) for Linux hosts. One command opens a menu — install,
+edit, preview, uninstall. By default it's **local**: the banner lives in
+`/etc/terminal-welcome/message` on each host and you edit it right there, with
+nothing fetched afterward. Optionally point a host at a `message.txt` in a repo to
+**sync** it (edit once, all synced hosts follow). Either way the renderer fills in
+**live, per-host values** (IP, uptime, temperature, listening ports, reboot status
+…) at display time.
 
 Shows on **SSH login**, **local console login**, and **desktop terminal windows**,
 and reads a **local** file, so it always works — online or off.
@@ -62,12 +64,15 @@ it just installs locally; `TW_SYNC=1` + `TW_SYNC_URL=…` select sync.)
 
 Pick **Edit the banner** from the menu (`sudo terminal-welcome`) — or edit the
 file directly. Either way it's the file **`/etc/terminal-welcome/message` on the
-host**, and the change shows at the next login (instant, no sync, no GitHub):
+host**, and the change shows at the next login:
 
 ```bash
 sudo nano /etc/terminal-welcome/message       # edit on the box
 sudo /usr/local/sbin/terminal-welcome-render  # preview the result immediately
 ```
+
+(On a **synced** host, edit `message.txt` in the repo instead — the sync
+overwrites on-host edits within ~15 min.)
 
 It's a template: static text is shown as-is; `{{TOKENS}}` are replaced with this
 host's live values. **A line is omitted only when a token in it resolves to
@@ -83,10 +88,10 @@ tools/preview.sh                 # preview ./message.txt
 tools/preview.sh examples/server.txt
 ```
 
-To change the **default** that fresh installs start with, edit
+To change the **default** that fresh local installs start with, edit
 [`message.txt`](message.txt) in the repo (it's the banner baked into `setup.sh`).
-Existing hosts are independent — re-running the installer never overwrites a
-banner you've edited locally.
+Local hosts are independent — re-running the installer never overwrites a banner
+you've edited on the host.
 
 ### Token catalogue
 
@@ -166,10 +171,9 @@ banner you've edited locally.
 | `{{UPDATES}}` | pending package updates — *cached*; needs the optional refresh cron (below) |
 </details>
 
-> **`{{PUBIP}}` and `{{UPDATES}}` are opt-in.** They read a value cached on disk
-> that the local install doesn't populate on its own (that was the old sync job).
-> If you use them, refresh the cache from cron — purely local, no GitHub. E.g.
-> every 30 min write the public IP:
+> **`{{PUBIP}}` and `{{UPDATES}}` need a periodic refresh.** In **sync** mode the
+> timer already refreshes them each tick. In **local** mode nothing populates them
+> on its own — add a cron if you use them (purely local, no GitHub):
 >
 > ```bash
 > # /etc/cron.d/terminal-welcome-cache
@@ -213,24 +217,32 @@ GitHub. Emoji work too (they're UTF-8).
   interactive terminals via the shell snippet below.
 - **Desktop terminal windows** (non-login shells `pam_motd` never covers) render
   live via a guarded `/etc/profile.d` snippet.
-- **No background sync.** After install nothing is fetched or scheduled — the
-  banner is a local file (`/etc/terminal-welcome/message`) that you own and edit.
+- **Local mode (default): no background sync.** Nothing is fetched or scheduled —
+  the banner is a local file (`/etc/terminal-welcome/message`) you own and edit.
+- **Sync mode (optional): one timer.** A systemd timer (cron fallback) pulls your
+  `message.txt` from the repo every ~15 min, strips escape bytes, and refreshes the
+  cached values. If the source is unreachable it keeps the last banner.
 
 ## Security
 
-After install nothing is fetched from GitHub, so there's no ongoing supply-chain
-surface — the banner is a local file. The renderer treats that file as **data**:
-tokens are string-substituted, the template is **never executed** (no `eval`), and
-the ESC control byte is stripped so ANSI/OSC escape sequences can't render. So
-even a banner edited by an untrusted user can only change text — not run code,
-even though the render runs as root at login.
+The renderer treats the banner file as **data**: tokens are string-substituted,
+the template is **never executed** (no `eval`), and the ESC control byte is
+stripped so ANSI/OSC escape sequences can't render. So even a banner from an
+untrusted source can only change text — not run code, even though the render runs
+as root at login.
+
+In **local** mode nothing is fetched after install, so there's no ongoing
+supply-chain surface at all. In **sync** mode only the template **text** is
+fetched (never code), with the same data-not-code guarantees — the trade-off is
+that you're trusting whatever's in that repo to land on synced hosts.
 
 ## Making it your own (forking)
 
 The engine is generic. To run your own copy:
 
-- Fork the repo (so your hosts bootstrap `setup.sh` from your URL), then edit the
-  default [`message.txt`](message.txt) to taste.
+- For **sync** you don't need to fork — just paste your repo's raw `message.txt`
+  URL at the Install prompt. To change the built-in **default** (what a local
+  install seeds), fork and edit [`message.txt`](message.txt).
 - Everything installed uses neutral names (`terminal-welcome-*`, `00-welcome`), so
   nothing is tied to this org except the default `message.txt` text and the
   example branding.
@@ -259,7 +271,7 @@ The engine is generic. To run your own copy:
 
 | File | Role |
 |------|------|
-| `setup.sh` | installer / uninstaller; embeds the renderer, the default banner, and the shell snippet |
+| `setup.sh` | menu-driven installer (install / edit / preview / uninstall); embeds the renderer, the default banner, the shell snippet, and the sync updater |
 | `message.txt` | the **default** banner baked into `setup.sh` (hosts edit their own local copy) |
 | `examples/` | ready-to-use templates |
 | `tools/preview.sh` | render a template with sample data (preview before deploying) |
