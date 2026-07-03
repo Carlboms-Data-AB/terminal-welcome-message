@@ -152,8 +152,8 @@ os=$(awk -F= '$1=="PRETTY_NAME"||$1=="NAME"{v=$0;sub(/^[^=]*=/,"",v);gsub(/^["'\
 os_id=$(awk -F= '$1=="ID"{sub(/^[^=]*=/,"");gsub(/^["'\'']|["'\'']$/,"");print;exit}' /etc/os-release 2>/dev/null)
 kernel=$(cat /proc/sys/kernel/osrelease 2>/dev/null || uname -r 2>/dev/null)
 arch=$(uname -m 2>/dev/null)
-model=$(cat /sys/firmware/devicetree/base/model 2>/dev/null | tr -d '\0')
-[ -n "$model" ] || model=$(cat /proc/device-tree/model 2>/dev/null | tr -d '\0')
+model=$(tr -d '\0' 2>/dev/null < /sys/firmware/devicetree/base/model)
+[ -n "$model" ] || model=$(tr -d '\0' 2>/dev/null < /proc/device-tree/model)
 if [ -z "$model" ]; then
   mv=$(cat /sys/class/dmi/id/sys_vendor 2>/dev/null); mp=$(cat /sys/class/dmi/id/product_name 2>/dev/null)
   case "$mp" in ''|To\ be\ filled*|System\ Product\ Name|None|Default\ string|Not\ Applicable|Not\ Specified) mp= ;; esac
@@ -170,7 +170,7 @@ booted=$(awk '/^btime/{print $2}' /proc/stat 2>/dev/null); [ -n "$booted" ] && b
 
 # -- cpu --
 cpu=$(sed -n 's/^model name[[:space:]]*: *//p' /proc/cpuinfo 2>/dev/null | head -n1)
-[ -n "$cpu" ] || cpu=$(cat /proc/device-tree/model 2>/dev/null | tr -d '\0')
+[ -n "$cpu" ] || cpu=$(tr -d '\0' 2>/dev/null < /proc/device-tree/model)
 cores=$(nproc 2>/dev/null); case "$cores" in ''|0) cores=$(grep -c '^processor' /proc/cpuinfo 2>/dev/null) ;; esac; case "$cores" in ''|0) cores='' ;; esac
 load1=$(cut -d' ' -f1 /proc/loadavg 2>/dev/null); load5=$(cut -d' ' -f2 /proc/loadavg 2>/dev/null); load15=$(cut -d' ' -f3 /proc/loadavg 2>/dev/null)
 temp=''

@@ -143,8 +143,8 @@ jobs:
         run: |
           set -eu
           out=$(/usr/local/sbin/terminal-welcome-render); echo "$out"
-          grep -q 'Copyright Carlboms Data AB' <<<"$out"
-          grep -q 'Host    :'                  <<<"$out"
+          printf '%s\n' "$out" | grep -q 'Copyright Carlboms Data AB'
+          printf '%s\n' "$out" | grep -q 'Host    :'
       - name: Assert colour + emoji rendering
         run: |
           set -eu
