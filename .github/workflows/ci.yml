@@ -34,9 +34,13 @@ jobs:
           python3 tools/render-svg.py examples/server.txt    /tmp/server.svg
           python3 tools/render-svg.py examples/branded.txt   /tmp/branded.svg
           python3 tools/render-svg.py examples/ascii-art.txt /tmp/ascii-art.svg
+          python3 tools/render-svg.py message.txt            /tmp/banner.svg
+          python3 tools/render-svg.py docs/menu.txt          /tmp/menu.svg --verbatim
           diff -q /tmp/server.svg docs/img/server.svg
           diff -q /tmp/branded.svg docs/img/branded.svg
           diff -q /tmp/ascii-art.svg docs/img/ascii-art.svg
+          diff -q /tmp/banner.svg docs/img/banner.svg
+          diff -q /tmp/menu.svg docs/img/menu.svg
           echo "lint OK"
 
   integration-ubuntu:

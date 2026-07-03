@@ -570,12 +570,12 @@ menu_local() {
     while true; do
         tw_clear
         tw_header
-        printf '   \033[1;36m1\033[0m  Edit the banner\n   \033[1;36m2\033[0m  Preview\n   \033[1;36m3\033[0m  Uninstall\n   \033[1;36m4\033[0m  Quit\n\n'
+        printf '   \033[1;36m1\033[0m  Show Banner\n   \033[1;36m2\033[0m  Edit the banner\n   \033[1;36m3\033[0m  Uninstall\n   \033[1;36m4\033[0m  Quit\n\n'
         printf '  \033[2mchoose\033[0m \033[1;36m\342\235\257\033[0m '
         read -r c <&3 || c=4
         case "$c" in
-            1) do_edit; tw_pause ;;
-            2) do_preview; tw_pause ;;
+            1) do_preview; tw_pause ;;
+            2) do_edit; tw_pause ;;
             3) uninstall_body; exit 0 ;;
             4) exit 0 ;;
             *) : ;;
@@ -588,13 +588,13 @@ menu() {
     while true; do
         tw_clear
         tw_header
-        printf '   \033[1;36m1\033[0m  Install / update\n   \033[1;36m2\033[0m  Edit the banner\n   \033[1;36m3\033[0m  Preview\n   \033[1;36m4\033[0m  Uninstall\n   \033[1;36m5\033[0m  Quit\n\n'
+        printf '   \033[1;36m1\033[0m  Install / update\n   \033[1;36m2\033[0m  Show Banner\n   \033[1;36m3\033[0m  Edit the banner\n   \033[1;36m4\033[0m  Uninstall\n   \033[1;36m5\033[0m  Quit\n\n'
         printf '  \033[2mchoose\033[0m \033[1;36m\342\235\257\033[0m '
         read -r c <&3 || c=5
         case "$c" in
             1) menu_install; tw_pause ;;
-            2) do_edit; tw_pause ;;
-            3) do_preview; tw_pause ;;
+            2) do_preview; tw_pause ;;
+            3) do_edit; tw_pause ;;
             4) uninstall_body; exit 0 ;;
             5) exit 0 ;;
             *) : ;;

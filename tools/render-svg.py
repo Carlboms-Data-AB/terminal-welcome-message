@@ -113,10 +113,16 @@ def line_to_runs(line):
     return runs
 
 
-def render(template_path, svg_path):
+def render(template_path, svg_path, verbatim=False):
     with open(template_path, encoding="utf-8") as fh:
         text = fh.read()
-    lines = drop_empty_lines(substitute_generic(substitute_data(text)))
+    text = substitute_generic(substitute_data(text))
+    if verbatim:   # keep blank lines (for UI mockups like the menu)
+        lines = [ln.replace(SENTINEL, "") for ln in text.split("\n")]
+        while lines and lines[-1].strip() == "":
+            lines.pop()
+    else:
+        lines = drop_empty_lines(text)
     parsed = [line_to_runs(ln) for ln in lines]
 
     width_chars = max((sum(len(t) for t, *_ in runs) for runs in parsed), default=1)
@@ -165,4 +171,5 @@ def render(template_path, svg_path):
 
 
 if __name__ == "__main__":
-    render(sys.argv[1], sys.argv[2])
+    _args = [a for a in sys.argv[1:] if a != "--verbatim"]
+    render(_args[0], _args[1], verbatim="--verbatim" in sys.argv)

@@ -1,0 +1,11 @@
+{{BOLD}}{{CYAN}}┌────────┐{{RESET}}
+{{BOLD}}{{CYAN}}│{{RESET}} {{BOLD}}{{GREEN}}❯_{{RESET}}     {{BOLD}}{{CYAN}}│{{RESET}}   {{BOLD}}{{CYAN}}TERMINAL BANNER{{RESET}}
+{{BOLD}}{{CYAN}}└────────┘{{RESET}}   {{DIM}}live host info, shown at every login{{RESET}}
+
+   {{BOLD}}{{CYAN}}1{{RESET}}  Install / update
+   {{BOLD}}{{CYAN}}2{{RESET}}  Show Banner
+   {{BOLD}}{{CYAN}}3{{RESET}}  Edit the banner
+   {{BOLD}}{{CYAN}}4{{RESET}}  Uninstall
+   {{BOLD}}{{CYAN}}5{{RESET}}  Quit
+
+  {{DIM}}choose{{RESET}} {{BOLD}}{{CYAN}}❯{{RESET}}
