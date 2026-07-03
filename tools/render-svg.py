@@ -15,24 +15,24 @@ import sys
 # Sample values matching the Ubuntu box from the README example (kept in sync
 # with tools/preview.sh and the renderer's token set).
 SAMPLE = {
-    "HOSTNAME": "cloud-server-10141984",
-    "FQDN": "cloud-server-10141984.example.net",
+    "HOSTNAME": "web-01",
+    "FQDN": "web-01.example.com",
     "OS": "Ubuntu 24.04.3 LTS", "OS_ID": "ubuntu",
     "KERNEL": "6.8.0-71-generic", "ARCH": "x86_64",
     "MODEL": "Raspberry Pi 5 Model B Rev 1.0",
-    "DATE": "2026-07-03 09:22", "TIME": "09:22", "TIMEZONE": "Europe/Stockholm",
+    "DATE": "2026-07-03 09:22", "TIME": "09:22", "TIMEZONE": "UTC",
     "UPTIME": "3 days, 4 hours", "BOOTED": "2026-06-29 05:15",
     "CPU": "Intel(R) Xeon(R) CPU E5-2670 v3 @ 2.30GHz", "CORES": "4",
     "LOAD": "0.08", "LOAD1": "0.08", "LOAD5": "0.10", "LOAD15": "0.09",
     "CPU_TEMP": "48.3°C", "THROTTLED": "",
     "MEMORY": "35%", "MEM": "2.7Gi / 7.8Gi", "MEM_FREE": "5.1Gi", "SWAP": "0B / 2.0Gi",
     "DISK": "19% of 96G", "DISK_FREE": "76G", "DISK_TOTAL": "96G",
-    "IP": "81.88.19.36 (ens3), 100.91.68.49 (wt0)", "IP4": "81.88.19.36",
-    "IPV6": "2a01:4f9:c012:abcd::1", "VPNIP": "100.91.68.49",
-    "IFACE": "ens3", "GATEWAY": "81.88.19.1", "DNS": "1.1.1.1, 8.8.8.8",
+    "IP": "192.0.2.10 (ens3), 100.64.0.10 (wt0)", "IP4": "192.0.2.10",
+    "IPV6": "2001:db8::1", "VPNIP": "100.64.0.10",
+    "IFACE": "ens3", "GATEWAY": "192.0.2.1", "DNS": "1.1.1.1, 8.8.8.8",
     "MAC": "52:54:00:ab:cd:ef", "PORTS": "22, 80, 443",
     "DOCKER": "3 running (web, api, db)", "FAILED": "",
-    "USERS": "1", "SESSIONS": "2", "WHO": "root, tobias",
+    "USERS": "1", "SESSIONS": "2", "WHO": "root, admin",
     "PUBIP": "203.0.113.45", "UPDATES": "42 updates",
     # The renderer wraps a pending reboot in red; reproduce that here.
     "REBOOT": "{{RED}}*** System restart required ***{{RESET}}",
@@ -41,10 +41,10 @@ SAMPLE = {
 
 def substitute_generic(text):
     """Resolve {{IP_<IFACE>}} and {{URL_<IFACE>_PORT_<PORT>}} with sample values."""
-    text = re.sub(r"\{\{IP_[A-Z0-9]+\}\}", "100.91.68.49", text)
+    text = re.sub(r"\{\{IP_[A-Z0-9]+\}\}", "100.64.0.10", text)
 
     def _url(m):
-        port, ip = m.group(1), "100.91.68.49"
+        port, ip = m.group(1), "100.64.0.10"
         if port == "443":
             return "https://" + ip
         if port == "80":

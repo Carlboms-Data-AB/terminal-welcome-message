@@ -29,10 +29,10 @@
 <tspan x="16.0" textLength="201.6" lengthAdjust="spacingAndGlyphs" fill="#8be9fd">    \____________/      </tspan>
 </text>
 <text y="198" xml:space="preserve">
-<tspan x="16.0" textLength="260.4" lengthAdjust="spacingAndGlyphs" fill="#c9d1d9"> Host   : cloud-server-10141984</tspan>
+<tspan x="16.0" textLength="134.4" lengthAdjust="spacingAndGlyphs" fill="#c9d1d9"> Host   : web-01</tspan>
 </text>
 <text y="218" xml:space="preserve">
-<tspan x="16.0" textLength="184.8" lengthAdjust="spacingAndGlyphs" fill="#c9d1d9"> VPN IP : 100.91.68.49</tspan>
+<tspan x="16.0" textLength="176.4" lengthAdjust="spacingAndGlyphs" fill="#c9d1d9"> VPN IP : 100.64.0.10</tspan>
 </text>
 <text y="238" xml:space="preserve">
 <tspan x="16.0" textLength="210.0" lengthAdjust="spacingAndGlyphs" fill="#c9d1d9"> Uptime : 3 days, 4 hours</tspan>

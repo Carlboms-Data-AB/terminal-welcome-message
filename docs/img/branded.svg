@@ -18,13 +18,13 @@
 <tspan x="16.0" textLength="336.0" lengthAdjust="spacingAndGlyphs" fill="#8be9fd">========================================</tspan>
 </text>
 <text y="118" xml:space="preserve">
-<tspan x="16.0" textLength="268.8" lengthAdjust="spacingAndGlyphs" fill="#c9d1d9"> Host    : cloud-server-10141984</tspan>
+<tspan x="16.0" textLength="142.8" lengthAdjust="spacingAndGlyphs" fill="#c9d1d9"> Host    : web-01</tspan>
 </text>
 <text y="138" xml:space="preserve">
-<tspan x="16.0" textLength="193.2" lengthAdjust="spacingAndGlyphs" fill="#c9d1d9"> VPN IP  : 100.91.68.49</tspan>
+<tspan x="16.0" textLength="184.8" lengthAdjust="spacingAndGlyphs" fill="#c9d1d9"> VPN IP  : 100.64.0.10</tspan>
 </text>
 <text y="158" xml:space="preserve">
-<tspan x="16.0" textLength="252.0" lengthAdjust="spacingAndGlyphs" fill="#c9d1d9"> Web UI  : http://100.91.68.49</tspan>
+<tspan x="16.0" textLength="243.6" lengthAdjust="spacingAndGlyphs" fill="#c9d1d9"> Web UI  : http://100.64.0.10</tspan>
 </text>
 <text y="178" xml:space="preserve">
 <tspan x="16.0" textLength="184.8" lengthAdjust="spacingAndGlyphs" fill="#c9d1d9"> Ports   : 22, 80, 443</tspan>

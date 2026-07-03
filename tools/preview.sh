@@ -16,8 +16,8 @@ out=$(cat "$FILE")
 # ---- sample values (kept in sync with the renderer's token set) -------------
 SOH=$(printf '\001')                          # sentinel marks empty values (see drop below)
 sub() { v=$2; [ -n "$v" ] || v=$SOH; out=${out//"{{$1}}"/$v}; }
-sub HOSTNAME   "cloud-server-10141984"
-sub FQDN       "cloud-server-10141984.example.net"
+sub HOSTNAME   "web-01"
+sub FQDN       "web-01.example.com"
 sub OS         "Ubuntu 24.04.3 LTS"
 sub OS_ID      "ubuntu"
 sub KERNEL     "6.8.0-71-generic"
@@ -25,7 +25,7 @@ sub ARCH       "x86_64"
 sub MODEL      "Raspberry Pi 5 Model B Rev 1.0"
 sub DATE       "2026-07-03 09:22"
 sub TIME       "09:22"
-sub TIMEZONE   "Europe/Stockholm"
+sub TIMEZONE   "UTC"
 sub UPTIME     "3 days, 4 hours"
 sub BOOTED     "2026-06-29 05:15"
 sub CPU        "Intel(R) Xeon(R) CPU E5-2670 v3 @ 2.30GHz"
@@ -43,12 +43,12 @@ sub SWAP       "0B / 2.0Gi"
 sub DISK       "19% of 96G"
 sub DISK_FREE  "76G"
 sub DISK_TOTAL "96G"
-sub IP         "81.88.19.36 (ens3), 100.91.68.49 (wt0)"
-sub IP4        "81.88.19.36"
-sub IPV6       "2a01:4f9:c012:abcd::1"
-sub VPNIP      "100.91.68.49"
+sub IP         "192.0.2.10 (ens3), 100.64.0.10 (wt0)"
+sub IP4        "192.0.2.10"
+sub IPV6       "2001:db8::1"
+sub VPNIP      "100.64.0.10"
 sub IFACE      "ens3"
-sub GATEWAY    "81.88.19.1"
+sub GATEWAY    "192.0.2.1"
 sub DNS        "1.1.1.1, 8.8.8.8"
 sub MAC        "52:54:00:ab:cd:ef"
 sub PORTS      "22, 80, 443"
@@ -56,18 +56,18 @@ sub DOCKER     "3 running (web, api, db)"
 sub FAILED     ""
 sub USERS      "1"
 sub SESSIONS   "2"
-sub WHO        "root, tobias"
+sub WHO        "root, admin"
 sub REBOOT     "{{RED}}*** System restart required ***{{RESET}}"
 sub PUBIP      "203.0.113.45"
 sub UPDATES    "42 updates"
 
 # generic {{IP_<IFACE>}} and {{URL_<IFACE>_PORT_<PORT>}} -> sample values
 for tok in $(printf '%s' "$out" | grep -oE '\{\{IP_[A-Z0-9]+\}\}' | sort -u); do
-    out=${out//"$tok"/"100.91.68.49"}
+    out=${out//"$tok"/"100.64.0.10"}
 done
 for tok in $(printf '%s' "$out" | grep -oE '\{\{URL_[A-Z0-9]+_PORT_[0-9]+\}\}' | sort -u); do
     prt=$(printf '%s' "$tok" | sed -E 's/^.*_PORT_([0-9]+)\}\}$/\1/')
-    case "$prt" in 443) v="https://100.91.68.49" ;; 80) v="http://100.91.68.49" ;; *) v="http://100.91.68.49:$prt" ;; esac
+    case "$prt" in 443) v="https://100.64.0.10" ;; 80) v="http://100.64.0.10" ;; *) v="http://100.64.0.10:$prt" ;; esac
     out=${out//"$tok"/$v}
 done
 
