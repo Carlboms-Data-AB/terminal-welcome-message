@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 #
-# setup.sh - install a custom, dynamic terminal welcome message (MOTD) on Linux.
+# setup.sh - install a custom, dynamic terminal banner (MOTD) on Linux.
 #
-# Fully LOCAL: the install bootstraps from GitHub (this script), but AFTER that
-# nothing is ever fetched again. The banner lives in /etc/terminal-welcome/message
+# Local by default: after install nothing is fetched (optional sync mode pulls the
+# banner from a repo on a timer). The banner lives in /etc/terminal-banner/message
 # on the host - a TEMPLATE with {{TOKENS}} that the renderer fills in with this
 # host's live values at display time, plus {{COLOUR}} tokens for styling. Edit
 # that file on the box and the change is immediate; re-running this installer
@@ -17,37 +17,37 @@
 # preview / uninstall). Piped with no terminal (automation), it just installs.
 #
 # Usage:
-#   curl -fsSL https://raw.githubusercontent.com/Carlboms-Data-AB/terminal-welcome-message/main/setup.sh | sudo bash
+#   curl -fsSL https://raw.githubusercontent.com/Carlboms-Data-AB/terminal-banner/main/setup.sh | sudo bash
 #
 # After installing, reopen the menu on the host (no network) with:
-#   sudo terminal-welcome
+#   sudo terminal-banner
 #
 set -euo pipefail
 
 # ---- Configuration ----------------------------------------------------------
 
-CONF_DIR=/etc/terminal-welcome
+CONF_DIR=/etc/terminal-banner
 CONF_FILE="$CONF_DIR/welcome.conf"         # legacy synced-install config - removed on install
-CACHE_DIR=/var/lib/terminal-welcome        # optional cache for {{PUBIP}}/{{UPDATES}}
+CACHE_DIR=/var/lib/terminal-banner        # optional cache for {{PUBIP}}/{{UPDATES}}
 STATE="$CONF_DIR/message"                  # the LOCAL template - edit this on the host
 MOTD_BACKUP="$CONF_DIR/motd.orig"
 DISABLED_LIST="$CONF_DIR/disabled-motd.d"
-UPDATER=/usr/local/sbin/terminal-welcome-update   # legacy sync job - removed on install
-RENDERER=/usr/local/sbin/terminal-welcome-render
-LOCAL_UNINSTALL=/usr/local/sbin/terminal-welcome-uninstall   # self-contained local remover (no network)
-LAUNCHER=/usr/local/sbin/terminal-welcome                    # the local menu (edit / preview / uninstall)
+UPDATER=/usr/local/sbin/terminal-banner-update   # legacy sync job - removed on install
+RENDERER=/usr/local/sbin/terminal-banner-render
+LOCAL_UNINSTALL=/usr/local/sbin/terminal-banner-uninstall   # self-contained local remover (no network)
+LAUNCHER=/usr/local/sbin/terminal-banner                    # the local menu (edit / preview / uninstall)
 MOTDD_SCRIPT=/etc/update-motd.d/00-welcome
 MOTDD_LEGACY=/etc/update-motd.d/00-carlboms-welcome   # pre-rename installs
-PROFILE_SNIPPET=/etc/profile.d/zz-terminal-welcome.sh
+PROFILE_SNIPPET=/etc/profile.d/zz-terminal-banner.sh
 BASHRC=/etc/bash.bashrc
-SVC=/etc/systemd/system/terminal-welcome.service
-TIMER=/etc/systemd/system/terminal-welcome.timer
-CRON=/etc/cron.d/terminal-welcome
-HOOK_MARK="# >>> terminal-welcome hook >>>"
+SVC=/etc/systemd/system/terminal-banner.service
+TIMER=/etc/systemd/system/terminal-banner.timer
+CRON=/etc/cron.d/terminal-banner
+HOOK_MARK="# >>> terminal-banner hook >>>"
 
 # GitHub-sync mode (optional, chosen from the menu): pull the banner from the repo
 # on a timer. Local mode (the default) never touches these.
-REPO_RAW="https://raw.githubusercontent.com/Carlboms-Data-AB/terminal-welcome-message/main"
+REPO_RAW="https://raw.githubusercontent.com/Carlboms-Data-AB/terminal-banner/main"
 SYNC_URL="${TW_SYNC_URL:-$REPO_RAW/message.txt}"
 SYNC_INTERVAL=15
 
@@ -59,15 +59,15 @@ use_update_motd_d() { [[ -d /etc/update-motd.d ]]; }
 # ---- Uninstall --------------------------------------------------------------
 
 uninstall_body() {
-    echo "Removing terminal-welcome ..."
+    echo "Removing terminal-banner ..."
     if has_systemd; then
-        systemctl disable --now terminal-welcome.timer 2>/dev/null || true
+        systemctl disable --now terminal-banner.timer 2>/dev/null || true
         rm -f "$TIMER" "$SVC"; systemctl daemon-reload 2>/dev/null || true
     fi
     rm -f "$CRON" "$UPDATER" "$RENDERER" "$LOCAL_UNINSTALL" "$LAUNCHER" "$PROFILE_SNIPPET" "$MOTDD_SCRIPT" "$MOTDD_LEGACY"
 
     if [[ -f "$BASHRC" ]] && grep -qF "$HOOK_MARK" "$BASHRC"; then
-        sed -i "/$(printf '%s' "$HOOK_MARK" | sed 's/[.[*^$/]/\\&/g')/,/# <<< terminal-welcome hook <<</d" "$BASHRC"
+        sed -i "/$(printf '%s' "$HOOK_MARK" | sed 's/[.[*^$/]/\\&/g')/,/# <<< terminal-banner hook <<</d" "$BASHRC"
     fi
     if [[ -f "$DISABLED_LIST" ]]; then
         while IFS= read -r f; do [[ -e "$f" ]] && chmod +x "$f"; done < "$DISABLED_LIST"
@@ -87,7 +87,7 @@ uninstall_body() {
 # ---- GitHub sync (optional; chosen from the menu) ---------------------------
 
 remove_sync() {
-    if has_systemd; then systemctl disable --now terminal-welcome.timer 2>/dev/null || true; fi
+    if has_systemd; then systemctl disable --now terminal-banner.timer 2>/dev/null || true; fi
     rm -f "$TIMER" "$SVC" "$CRON" "$UPDATER" "$CONF_FILE"
     if has_systemd; then systemctl daemon-reload 2>/dev/null || true; fi
     return 0
@@ -95,7 +95,7 @@ remove_sync() {
 
 install_sync() {
     cat > "$CONF_FILE" <<EOF
-# terminal-welcome sync config - managed by the installer.
+# terminal-banner sync config - managed by the installer.
 MESSAGE_URL="$SYNC_URL"
 RENDER_TO_MOTD=$RENDER_TO_MOTD
 EOF
@@ -103,15 +103,15 @@ EOF
 
     cat > "$UPDATER" <<'UPD_EOF'
 #!/bin/sh
-# terminal-welcome-update - pull the banner from GitHub (DATA only) and refresh
+# terminal-banner-update - pull the banner from GitHub (DATA only) and refresh
 # cached values. Fails safe when offline (keeps the last banner).
 set -eu
-CONF=/etc/terminal-welcome/welcome.conf
+CONF=/etc/terminal-banner/welcome.conf
 [ -r "$CONF" ] && . "$CONF"
 : "${MESSAGE_URL:?MESSAGE_URL not set}"
-STATE=/etc/terminal-welcome/message
-CACHE=/var/lib/terminal-welcome
-RENDERER=/usr/local/sbin/terminal-welcome-render
+STATE=/etc/terminal-banner/message
+CACHE=/var/lib/terminal-banner
+RENDERER=/usr/local/sbin/terminal-banner-render
 mkdir -p "$CACHE"
 tmp=$(mktemp); trap 'rm -f "$tmp"' EXIT
 if command -v curl >/dev/null 2>&1; then
@@ -140,7 +140,7 @@ UPD_EOF
         rm -f "$CRON"
         cat > "$SVC" <<EOF
 [Unit]
-Description=Sync terminal welcome banner from GitHub
+Description=Sync terminal banner from GitHub
 After=network-online.target
 Wants=network-online.target
 [Service]
@@ -149,7 +149,7 @@ ExecStart=$UPDATER
 EOF
         cat > "$TIMER" <<EOF
 [Unit]
-Description=Periodically sync the terminal welcome banner
+Description=Periodically sync the terminal banner
 [Timer]
 OnBootSec=1min
 OnUnitActiveSec=${SYNC_INTERVAL}min
@@ -158,7 +158,7 @@ RandomizedDelaySec=60
 WantedBy=timers.target
 EOF
         systemctl daemon-reload
-        systemctl enable --now terminal-welcome.timer
+        systemctl enable --now terminal-banner.timer
     elif command -v crontab >/dev/null 2>&1 || [ -d /etc/cron.d ] || mkdir -p /etc/cron.d 2>/dev/null; then
         rm -f "$SVC" "$TIMER"
         printf '*/%s * * * * root %s >/dev/null 2>&1\n' "$SYNC_INTERVAL" "$UPDATER" > "$CRON"
@@ -180,7 +180,7 @@ for c in ip ss awk sed; do command -v "$c" >/dev/null 2>&1 || missing="$missing 
 [[ -n "$missing" ]] && echo "NOTE: missing tools (some tokens will be blank):$missing" \
     "- install iproute2 / procps / coreutils / gawk for full output." >&2
 
-echo "Installing terminal-welcome ($mode) ..."
+echo "Installing terminal-banner ($mode) ..."
 mkdir -p "$CONF_DIR" "$CACHE_DIR"
 
 # Back up the existing /etc/motd once (records a symlink as text; copies a real file).
@@ -216,10 +216,10 @@ chmod 0644 "$STATE"
 #      executed (pure string substitution) so a hostile template can't run code.
 cat > "$RENDERER" <<'RENDER_EOF'
 #!/usr/bin/env bash
-# terminal-welcome-render - render the welcome banner for THIS host.
+# terminal-banner-render - render the welcome banner for THIS host.
 set -u
-STATE=/etc/terminal-welcome/message
-CACHE=/var/lib/terminal-welcome
+STATE=/etc/terminal-banner/message
+CACHE=/var/lib/terminal-banner
 [ -r "$STATE" ] || { echo "(no welcome template yet - re-run setup.sh)" >&2; exit 0; }
 tpl=$(cat "$STATE")
 
@@ -423,7 +423,7 @@ out=${out//'{{RED}}'/$c_red};         out=${out//'{{GREEN}}'/$c_green}
 out=${out//'{{YELLOW}}'/$c_yellow};   out=${out//'{{BLUE}}'/$c_blue}
 out=${out//'{{MAGENTA}}'/$c_magenta}; out=${out//'{{CYAN}}'/$c_cyan}
 out=${out//'{{WHITE}}'/$c_white}
-printf '%s%s\n' "$out" "$c_reset"
+printf '%s%s\n\n' "$out" "$c_reset"
 RENDER_EOF
 chmod 0755 "$RENDERER"; chown root:root "$RENDERER"
 
@@ -432,7 +432,7 @@ chmod 0755 "$RENDERER"; chown root:root "$RENDERER"
 #      resolved paths baked in - so the two can never drift.
 { printf '#!/usr/bin/env bash\nset -u\n'
   # shellcheck disable=SC2016  # the $EUID is meant to be literal in the generated script
-  printf '[[ $EUID -eq 0 ]] || { echo "run as root: sudo terminal-welcome-uninstall" >&2; exit 1; }\n'
+  printf '[[ $EUID -eq 0 ]] || { echo "run as root: sudo terminal-banner-uninstall" >&2; exit 1; }\n'
   declare -p CONF_DIR CACHE_DIR MOTD_BACKUP DISABLED_LIST UPDATER RENDERER \
              MOTDD_SCRIPT MOTDD_LEGACY PROFILE_SNIPPET BASHRC SVC TIMER CRON \
              HOOK_MARK LOCAL_UNINSTALL LAUNCHER
@@ -448,7 +448,7 @@ chmod 0755 "$LOCAL_UNINSTALL"; chown root:root "$LOCAL_UNINSTALL"
 # ---- GUI terminal windows: render live from the shell (pam_motd never runs
 #      there). Guarded so it does not double-print on SSH / console logins.
 cat > "$PROFILE_SNIPPET" <<'EOF'
-# terminal-welcome: show the banner in desktop terminal windows (non-login
+# terminal-banner: show the banner in desktop terminal windows (non-login
 # interactive shells), where pam_motd never runs. Guarded to avoid double-print.
 case $- in
   *i*)
@@ -456,7 +456,7 @@ case $- in
        && [ -n "${BASH_VERSION:-}" ] \
        && ! shopt -q login_shell \
        && [ -z "${SSH_CONNECTION:-}${SSH_TTY:-}${SSH_CLIENT:-}" ]; then
-        [ -x /usr/local/sbin/terminal-welcome-render ] && /usr/local/sbin/terminal-welcome-render
+        [ -x /usr/local/sbin/terminal-banner-render ] && /usr/local/sbin/terminal-banner-render
         export __TW_SHOWN=1
     fi
     ;;
@@ -470,7 +470,7 @@ if [[ -f "$BASHRC" ]] && ! grep -qF "$HOOK_MARK" "$BASHRC"; then
     cat >> "$BASHRC" <<EOF
 $HOOK_MARK
 [ -r "$PROFILE_SNIPPET" ] && . "$PROFILE_SNIPPET"
-# <<< terminal-welcome hook <<<
+# <<< terminal-banner hook <<<
 EOF
 fi
 
@@ -513,7 +513,7 @@ else
     echo "Installed. Banner is live — fully local, no GitHub sync."
 fi
 echo "  Render   : $( use_update_motd_d && echo 'live at each login (/etc/update-motd.d)' || echo 'onto /etc/motd now (snapshot on this distro; live in interactive shells)' )"
-echo "  Menu     : sudo terminal-welcome     (edit / preview / uninstall - local, no network)"
+echo "  Menu     : sudo terminal-banner     (edit / preview / uninstall - local, no network)"
 echo "  Edit file: sudo nano $STATE"
 echo "  Preview  : sudo $RENDERER"
 echo
@@ -526,7 +526,7 @@ echo "----------------------------------------"
 # host with no network. Built from the action functions so it can't drift.
 { printf '#!/usr/bin/env bash\nset -u\n'
   # shellcheck disable=SC2016  # $EUID is meant to be literal in the generated script
-  printf '[[ $EUID -eq 0 ]] || { echo "run as root: sudo terminal-welcome" >&2; exit 1; }\n'
+  printf '[[ $EUID -eq 0 ]] || { echo "run as root: sudo terminal-banner" >&2; exit 1; }\n'
   declare -p CONF_DIR CACHE_DIR STATE MOTD_BACKUP DISABLED_LIST UPDATER RENDERER \
              LOCAL_UNINSTALL LAUNCHER MOTDD_SCRIPT MOTDD_LEGACY PROFILE_SNIPPET \
              BASHRC SVC TIMER CRON HOOK_MARK
@@ -565,13 +565,13 @@ do_edit() {
     echo "----- preview -----"; "$RENDERER" 2>/dev/null || true
 }
 
-# Post-install menu, installed to the host as 'terminal-welcome'.
+# Post-install menu, installed to the host as 'terminal-banner'.
 # shellcheck disable=SC2329  # invoked indirectly from the generated launcher
 menu_local() {
     exec 3</dev/tty 2>/dev/null || { echo "no terminal"; exit 1; }
     while true; do
         tw_clear
-        printf '  Terminal Welcome Message\n  ========================\n\n'
+        printf '  Terminal Banner\n  ========================\n\n'
         printf '   1) Edit the banner\n   2) Preview\n   3) Uninstall\n   4) Quit\n\n  Choose [1-4]: '
         read -r c <&3 || c=4
         case "$c" in
@@ -588,7 +588,7 @@ menu_local() {
 menu() {
     while true; do
         tw_clear
-        printf '  Terminal Welcome Message\n  ========================\n\n'
+        printf '  Terminal Banner\n  ========================\n\n'
         printf '   1) Install / update\n   2) Edit the banner\n   3) Preview\n   4) Uninstall\n   5) Quit\n\n  Choose [1-5]: '
         read -r c <&3 || c=5
         case "$c" in

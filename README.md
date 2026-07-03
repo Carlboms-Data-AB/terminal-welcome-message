@@ -1,8 +1,8 @@
-# terminal-welcome-message
+# terminal-banner
 
 A custom login banner (MOTD) for Linux hosts. One command opens a menu — install,
 edit, preview, uninstall. By default it's **local**: the banner lives in
-`/etc/terminal-welcome/message` on each host and you edit it right there, with
+`/etc/terminal-banner/message` on each host and you edit it right there, with
 nothing fetched afterward. Optionally point a host at a `message.txt` in a repo to
 **sync** it (edit once, all synced hosts follow). Either way the renderer fills in
 **live, per-host values** (IP, uptime, temperature, listening ports, reboot status
@@ -16,7 +16,7 @@ and reads a **local** file, so it always works — online or off.
 </p>
 
 Ships with ready-to-use templates in [`examples/`](examples/) — copy one onto a
-host's `/etc/terminal-welcome/message` to adopt it:
+host's `/etc/terminal-banner/message` to adopt it:
 
 | Example | Preview |
 |---------|---------|
@@ -32,11 +32,11 @@ host's `/etc/terminal-welcome/message` to adopt it:
 Works on Raspberry Pi OS / Debian / Ubuntu / Fedora / RHEL / Arch:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Carlboms-Data-AB/terminal-welcome-message/main/setup.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/Carlboms-Data-AB/terminal-banner/main/setup.sh | sudo bash
 ```
 
 ```
-  Terminal Welcome Message
+  Terminal Banner
   ========================
    1) Install / update
    2) Edit the banner
@@ -48,7 +48,7 @@ curl -fsSL https://raw.githubusercontent.com/Carlboms-Data-AB/terminal-welcome-m
 After installing, reopen the same menu on the host with **no network**:
 
 ```bash
-sudo terminal-welcome
+sudo terminal-banner
 ```
 
 **Local or GitHub sync — one prompt.** When you pick **Install**, press **enter**
@@ -62,13 +62,13 @@ it just installs locally; `TW_SYNC=1` + `TW_SYNC_URL=…` select sync.)
 
 ## Editing the banner
 
-Pick **Edit the banner** from the menu (`sudo terminal-welcome`) — or edit the
-file directly. Either way it's the file **`/etc/terminal-welcome/message` on the
+Pick **Edit the banner** from the menu (`sudo terminal-banner`) — or edit the
+file directly. Either way it's the file **`/etc/terminal-banner/message` on the
 host**, and the change shows at the next login:
 
 ```bash
-sudo nano /etc/terminal-welcome/message       # edit on the box
-sudo /usr/local/sbin/terminal-welcome-render  # preview the result immediately
+sudo nano /etc/terminal-banner/message       # edit on the box
+sudo /usr/local/sbin/terminal-banner-render  # preview the result immediately
 ```
 
 (On a **synced** host, edit `message.txt` in the repo instead — the sync
@@ -176,11 +176,11 @@ you've edited on the host.
 > on its own — add a cron if you use them (purely local, no GitHub):
 >
 > ```bash
-> # /etc/cron.d/terminal-welcome-cache
-> */30 * * * * root sh -c 'curl -fs --max-time 4 https://api.ipify.org > /var/lib/terminal-welcome/pubip'
+> # /etc/cron.d/terminal-banner-cache
+> */30 * * * * root sh -c 'curl -fs --max-time 4 https://api.ipify.org > /var/lib/terminal-banner/pubip'
 > ```
 >
-> (write a count to `/var/lib/terminal-welcome/updates` the same way if you use `{{UPDATES}}`.)
+> (write a count to `/var/lib/terminal-banner/updates` the same way if you use `{{UPDATES}}`.)
 
 <details><summary><b>Generic (build your own)</b></summary>
 
@@ -218,7 +218,7 @@ GitHub. Emoji work too (they're UTF-8).
 - **Desktop terminal windows** (non-login shells `pam_motd` never covers) render
   live via a guarded `/etc/profile.d` snippet.
 - **Local mode (default): no background sync.** Nothing is fetched or scheduled —
-  the banner is a local file (`/etc/terminal-welcome/message`) you own and edit.
+  the banner is a local file (`/etc/terminal-banner/message`) you own and edit.
 - **Sync mode (optional): one timer.** A systemd timer (cron fallback) pulls your
   `message.txt` from the repo every ~15 min, strips escape bytes, and refreshes the
   cached values. If the source is unreachable it keeps the last banner.
@@ -243,14 +243,14 @@ The engine is generic. To run your own copy:
 - For **sync** you don't need to fork — just paste your repo's raw `message.txt`
   URL at the Install prompt. To change the built-in **default** (what a local
   install seeds), fork and edit [`message.txt`](message.txt).
-- Everything installed uses neutral names (`terminal-welcome-*`, `00-welcome`), so
+- Everything installed uses neutral names (`terminal-banner-*`, `00-welcome`), so
   nothing is tied to this org except the default `message.txt` text and the
   example branding.
 - The default `message.txt` assumes a **NetBird `wt0`** interface and a **CasaOS**
   dashboard (the `VPN IP` and `CasaOS` lines auto-hide where those are absent —
   swap in your own `{{IP_<IFACE>}}` / `{{URL_<IFACE>_PORT_<PORT>}}`).
 - Preview edits anywhere with `tools/preview.sh path/to/message.txt`. Since each
-  host is independent, you can also just edit `/etc/terminal-welcome/message` on
+  host is independent, you can also just edit `/etc/terminal-banner/message` on
   one box to try something before rolling it into the default.
 
 ## Known edge cases
@@ -258,7 +258,7 @@ The engine is generic. To run your own copy:
 - **`Last login:` line.** On SSH, `sshd` prints `Last login: …` above the banner
   (it's separate from the MOTD). Suppress per-user with `touch ~/.hushlogin`, or
   globally with `PrintLastLog no` in `/etc/ssh/sshd_config`.
-- **Updating the engine.** Editing a host's `/etc/terminal-welcome/message` is
+- **Updating the engine.** Editing a host's `/etc/terminal-banner/message` is
   instant. Getting a newer *renderer* (new tokens, `setup.sh` fixes) means
   re-running the installer on each host — it's idempotent and won't touch your
   edited banner.

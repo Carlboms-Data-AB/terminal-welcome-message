@@ -63,25 +63,25 @@ jobs:
       - name: Assert LOCAL install (renderer + seeded default, NO sync timer)
         run: |
           set -euo pipefail
-          test -x /usr/local/sbin/terminal-welcome-render
+          test -x /usr/local/sbin/terminal-banner-render
           test -x /etc/update-motd.d/00-welcome
           test ! -e /etc/update-motd.d/00-carlboms-welcome
-          test -s /etc/terminal-welcome/message                     # embedded default seeded
-          grep -q 'Copyright' /etc/terminal-welcome/message
-          test -s /etc/terminal-welcome/disabled-motd.d
-          test -x /usr/local/sbin/terminal-welcome-uninstall        # local uninstaller present
-          test -x /usr/local/sbin/terminal-welcome                  # local menu launcher present
-          test ! -e /usr/local/sbin/terminal-welcome-update         # no updater in local mode
-          test ! -e /etc/systemd/system/terminal-welcome.timer      # no sync timer
-          test ! -e /etc/cron.d/terminal-welcome                    # no cron
-          test ! -e /etc/terminal-welcome/welcome.conf              # no sync config
+          test -s /etc/terminal-banner/message                     # embedded default seeded
+          grep -q 'Copyright' /etc/terminal-banner/message
+          test -s /etc/terminal-banner/disabled-motd.d
+          test -x /usr/local/sbin/terminal-banner-uninstall        # local uninstaller present
+          test -x /usr/local/sbin/terminal-banner                  # local menu launcher present
+          test ! -e /usr/local/sbin/terminal-banner-update         # no updater in local mode
+          test ! -e /etc/systemd/system/terminal-banner.timer      # no sync timer
+          test ! -e /etc/cron.d/terminal-banner                    # no cron
+          test ! -e /etc/terminal-banner/welcome.conf              # no sync config
           if [ -e /etc/update-motd.d/10-help-text ]; then test ! -x /etc/update-motd.d/10-help-text; fi
 
       - name: Assert engine renders (controlled template)
         run: |
           set -euo pipefail
           sudo touch /var/run/reboot-required
-          sudo tee /etc/terminal-welcome/message >/dev/null <<'TPL'
+          sudo tee /etc/terminal-banner/message >/dev/null <<'TPL'
           {{CYAN}}hi{{RESET}} 🚀
            Host   : {{HOSTNAME}}
            VPN IP : {{VPNIP}}
@@ -94,7 +94,7 @@ jobs:
            Gone   : {{THROTTLED}}
            {{REBOOT}}
           TPL
-          out=$(sudo /usr/local/sbin/terminal-welcome-render)
+          out=$(sudo /usr/local/sbin/terminal-banner-render)
           echo "$out" | sed 's/\x1b/<ESC>/g'
           esc=$(printf '\033'); case "$out" in *"$esc"*) : ;; *) echo "no colour"; exit 1 ;; esac
           printf '%s'   "$out" | grep -q '🚀'                       # emoji preserved
@@ -114,19 +114,19 @@ jobs:
       - name: Re-running install preserves LOCAL edits (write-if-absent)
         run: |
           set -euo pipefail
-          echo 'MY-LOCAL-EDIT {{HOSTNAME}}' | sudo tee /etc/terminal-welcome/message >/dev/null
+          echo 'MY-LOCAL-EDIT {{HOSTNAME}}' | sudo tee /etc/terminal-banner/message >/dev/null
           sudo bash setup.sh
-          grep -q 'MY-LOCAL-EDIT' /etc/terminal-welcome/message     # on-host edit NOT overwritten
-          test ! -e /etc/systemd/system/terminal-welcome.timer      # still no timer
+          grep -q 'MY-LOCAL-EDIT' /etc/terminal-banner/message     # on-host edit NOT overwritten
+          test ! -e /etc/systemd/system/terminal-banner.timer      # still no timer
 
       - name: Uninstall via the LOCAL uninstaller (no setup.sh, no network)
         run: |
           set -euo pipefail
-          sudo /usr/local/sbin/terminal-welcome-uninstall
-          test ! -e /usr/local/sbin/terminal-welcome-render
-          test ! -e /usr/local/sbin/terminal-welcome-uninstall      # removed itself
+          sudo /usr/local/sbin/terminal-banner-uninstall
+          test ! -e /usr/local/sbin/terminal-banner-render
+          test ! -e /usr/local/sbin/terminal-banner-uninstall      # removed itself
           test ! -e /etc/update-motd.d/00-welcome
-          test ! -e /etc/terminal-welcome
+          test ! -e /etc/terminal-banner
           if [ -e /etc/update-motd.d/10-help-text ]; then test -x /etc/update-motd.d/10-help-text; fi
 
       - name: Stop listener
@@ -158,28 +158,28 @@ jobs:
       - name: Assert seeded default + engine renders (controlled template)
         run: |
           set -eu
-          test -s /etc/terminal-welcome/message                     # embedded default seeded
-          grep -q 'Copyright' /etc/terminal-welcome/message
-          printf 'MARKER-OK host={{HOSTNAME}}\n Section:\n' > /etc/terminal-welcome/message
-          out=$(/usr/local/sbin/terminal-welcome-render); echo "$out"
+          test -s /etc/terminal-banner/message                     # embedded default seeded
+          grep -q 'Copyright' /etc/terminal-banner/message
+          printf 'MARKER-OK host={{HOSTNAME}}\n Section:\n' > /etc/terminal-banner/message
+          out=$(/usr/local/sbin/terminal-banner-render); echo "$out"
           printf '%s\n' "$out" | grep -q 'MARKER-OK host='          # engine renders a token
           printf '%s\n' "$out" | grep -q 'Section:'                 # static header kept
       - name: Assert colour + emoji rendering
         run: |
           set -eu
-          cat > /etc/terminal-welcome/message <<'TPL'
+          cat > /etc/terminal-banner/message <<'TPL'
           {{GREEN}}ok{{RESET}} ✅ {{HOSTNAME}}
           TPL
-          out=$(/usr/local/sbin/terminal-welcome-render)
+          out=$(/usr/local/sbin/terminal-banner-render)
           esc=$(printf '\033'); case "$out" in *"$esc"*) : ;; *) echo "no colour"; exit 1 ;; esac
           printf '%s' "$out" | grep -q '✅'
           if printf '%s' "$out" | grep -q '{{'; then echo "leftover tokens"; exit 1; fi
       - name: Uninstall (local uninstaller, no flags)
         run: |
           set -eu
-          /usr/local/sbin/terminal-welcome-uninstall
-          test ! -e /etc/terminal-welcome
-          test ! -e /usr/local/sbin/terminal-welcome
+          /usr/local/sbin/terminal-banner-uninstall
+          test ! -e /etc/terminal-banner
+          test ! -e /usr/local/sbin/terminal-banner
 
   integration-sync:
     runs-on: ubuntu-latest
@@ -195,20 +195,20 @@ jobs:
       - name: Assert sync is ON and it fetched the served banner
         run: |
           set -euo pipefail
-          test -x /usr/local/sbin/terminal-welcome-update           # updater installed
-          systemctl is-enabled terminal-welcome.timer               # timer enabled
-          test -s /etc/terminal-welcome/welcome.conf
-          grep -q '127.0.0.1:8099' /etc/terminal-welcome/welcome.conf
-          grep -q 'Copyright' /etc/terminal-welcome/message         # fetched the served message.txt
+          test -x /usr/local/sbin/terminal-banner-update           # updater installed
+          systemctl is-enabled terminal-banner.timer               # timer enabled
+          test -s /etc/terminal-banner/welcome.conf
+          grep -q '127.0.0.1:8099' /etc/terminal-banner/welcome.conf
+          grep -q 'Copyright' /etc/terminal-banner/message         # fetched the served message.txt
       - name: Switching to local turns sync OFF
         run: |
           set -euo pipefail
           sudo bash setup.sh                                        # no tty, no TW_SYNC -> local
-          test ! -e /etc/systemd/system/terminal-welcome.timer
-          test ! -e /usr/local/sbin/terminal-welcome-update
-          test ! -e /etc/terminal-welcome/welcome.conf
+          test ! -e /etc/systemd/system/terminal-banner.timer
+          test ! -e /usr/local/sbin/terminal-banner-update
+          test ! -e /etc/terminal-banner/welcome.conf
       - name: Cleanup
         if: always()
         run: |
-          sudo /usr/local/sbin/terminal-welcome-uninstall 2>/dev/null || true
+          sudo /usr/local/sbin/terminal-banner-uninstall 2>/dev/null || true
           kill "${PID:-0}" 2>/dev/null || true
