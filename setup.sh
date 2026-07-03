@@ -16,6 +16,8 @@
 # Usage:
 #   curl -fsSL https://raw.githubusercontent.com/Carlboms-Data-AB/terminal-welcome-message/main/setup.sh | sudo bash
 #   curl -fsSL .../setup.sh | sudo bash -s -- --uninstall
+#   (or, on an already-installed host, remove it locally with no network:
+#    sudo terminal-welcome-uninstall)
 #
 # Options:
 #   --uninstall          remove everything and restore the box
@@ -25,7 +27,6 @@ set -euo pipefail
 
 # ---- Configuration ----------------------------------------------------------
 
-REPO_RAW="https://raw.githubusercontent.com/Carlboms-Data-AB/terminal-welcome-message/main"  # docs/uninstall link only; never fetched after install
 DO_UNINSTALL=false
 
 CONF_DIR=/etc/terminal-welcome
@@ -36,6 +37,7 @@ MOTD_BACKUP="$CONF_DIR/motd.orig"
 DISABLED_LIST="$CONF_DIR/disabled-motd.d"
 UPDATER=/usr/local/sbin/terminal-welcome-update   # legacy sync job - removed on install
 RENDERER=/usr/local/sbin/terminal-welcome-render
+LOCAL_UNINSTALL=/usr/local/sbin/terminal-welcome-uninstall   # self-contained local remover (no network)
 MOTDD_SCRIPT=/etc/update-motd.d/00-welcome
 MOTDD_LEGACY=/etc/update-motd.d/00-carlboms-welcome   # pre-rename installs
 PROFILE_SNIPPET=/etc/profile.d/zz-terminal-welcome.sh
@@ -70,13 +72,13 @@ use_update_motd_d() { [[ -d /etc/update-motd.d ]]; }
 
 # ---- Uninstall --------------------------------------------------------------
 
-uninstall() {
+uninstall_body() {
     echo "Removing terminal-welcome ..."
     if has_systemd; then
         systemctl disable --now terminal-welcome.timer 2>/dev/null || true
         rm -f "$TIMER" "$SVC"; systemctl daemon-reload 2>/dev/null || true
     fi
-    rm -f "$CRON" "$UPDATER" "$RENDERER" "$PROFILE_SNIPPET" "$MOTDD_SCRIPT" "$MOTDD_LEGACY"
+    rm -f "$CRON" "$UPDATER" "$RENDERER" "$LOCAL_UNINSTALL" "$PROFILE_SNIPPET" "$MOTDD_SCRIPT" "$MOTDD_LEGACY"
 
     if [[ -f "$BASHRC" ]] && grep -qF "$HOOK_MARK" "$BASHRC"; then
         sed -i "/$(printf '%s' "$HOOK_MARK" | sed 's/[.[*^$/]/\\&/g')/,/# <<< terminal-welcome hook <<</d" "$BASHRC"
@@ -94,9 +96,8 @@ uninstall() {
     fi
     rm -rf "$CONF_DIR" "$CACHE_DIR"
     echo "Done."
-    exit 0
 }
-$DO_UNINSTALL && uninstall
+$DO_UNINSTALL && { uninstall_body; exit 0; }
 
 # ---- Install ----------------------------------------------------------------
 
@@ -362,6 +363,20 @@ printf '%s%s\n' "$out" "$c_reset"
 RENDER_EOF
 chmod 0755 "$RENDERER"; chown root:root "$RENDERER"
 
+# ---- Local uninstaller: a self-contained remover so uninstall needs no network.
+#      Generated from the SAME uninstall_body used by 'setup.sh --uninstall', with
+#      the resolved paths baked in - so the two can never drift.
+{ printf '#!/usr/bin/env bash\nset -u\n'
+  # shellcheck disable=SC2016  # the $EUID is meant to be literal in the generated script
+  printf '[[ $EUID -eq 0 ]] || { echo "run as root: sudo terminal-welcome-uninstall" >&2; exit 1; }\n'
+  declare -p CONF_DIR CACHE_DIR MOTD_BACKUP DISABLED_LIST UPDATER RENDERER \
+             MOTDD_SCRIPT MOTDD_LEGACY PROFILE_SNIPPET BASHRC SVC TIMER CRON \
+             HOOK_MARK LOCAL_UNINSTALL
+  declare -f has_systemd uninstall_body
+  printf 'uninstall_body\n'
+} > "$LOCAL_UNINSTALL"
+chmod 0755 "$LOCAL_UNINSTALL"; chown root:root "$LOCAL_UNINSTALL"
+
 # ---- No updater / sync job in local mode: nothing is fetched after install.
 #      {{PUBIP}}/{{UPDATES}} are optional and refreshed only if you add the cron
 #      shown in the README. Any legacy sync artifacts are removed above on install.
@@ -428,7 +443,7 @@ echo "  Render   : $( use_update_motd_d && echo 'live at each login (/etc/update
 echo "  Edit     : sudo nano $STATE"
 echo "             (takes effect immediately; re-running setup.sh won't overwrite it)"
 echo "  Preview  : sudo $RENDERER"
-echo "  Uninstall: curl -fsSL $REPO_RAW/setup.sh | sudo bash -s -- --uninstall"
+echo "  Uninstall: sudo terminal-welcome-uninstall   (local, no network)"
 echo
 echo "Current banner on this host:"
 echo "----------------------------------------"

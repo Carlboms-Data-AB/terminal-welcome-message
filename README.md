@@ -41,8 +41,12 @@ time to update the engine; it won't touch a banner you've edited on the host.
 | `--uninstall` | undo the install and restore the box |
 | `-h`, `--help` | show usage |
 
+To remove it later, run the local uninstaller on the host — no network needed:
+
 ```bash
-curl -fsSL .../setup.sh | sudo bash -s -- --uninstall            # remove
+sudo terminal-welcome-uninstall                                 # remove (local)
+# or, equivalently, re-fetch and pass the flag:
+curl -fsSL .../setup.sh | sudo bash -s -- --uninstall
 ```
 
 ## Editing the banner
