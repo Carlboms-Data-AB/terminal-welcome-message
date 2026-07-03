@@ -36,12 +36,11 @@ curl -fsSL https://raw.githubusercontent.com/Carlboms-Data-AB/terminal-welcome-m
 ```
   Terminal Welcome Message
   ========================
-   1) Install / update (local, no sync)
-   2) Install with GitHub sync
-   3) Edit the banner
-   4) Preview
-   5) Uninstall
-   6) Quit
+   1) Install / update
+   2) Edit the banner
+   3) Preview
+   4) Uninstall
+   5) Quit
 ```
 
 After installing, reopen the same menu on the host with **no network**:
@@ -50,12 +49,14 @@ After installing, reopen the same menu on the host with **no network**:
 sudo terminal-welcome
 ```
 
-**Local vs GitHub sync.** Option 1 is the default — the banner lives on the host,
-you edit it there, and nothing is fetched afterward. Option 2 turns on **GitHub
-sync**: a timer pulls `message.txt` from the repo every ~15 min, so you edit once
-in the repo and every synced host follows (host-side edits are then overwritten).
-Choose option 1 again any time to switch sync back off. (Piped with no terminal —
-CI/automation — it just installs locally, no menu; `TW_SYNC=1` selects sync.)
+**Local or GitHub sync — one prompt.** When you pick **Install**, press **enter**
+to keep it local (edit the banner on the host, nothing fetched afterward). Or
+paste the **raw URL** of a `message.txt` in a repo —
+`https://raw.githubusercontent.com/USER/REPO/main/message.txt` — to turn on
+**sync**: a timer pulls that file every ~15 min, so you edit once in the repo and
+every synced host follows (host-side edits are then overwritten). Install again
+and press enter to switch back to local. (Piped with no terminal — CI/automation —
+it just installs locally; `TW_SYNC=1` + `TW_SYNC_URL=…` select sync.)
 
 ## Editing the banner
 

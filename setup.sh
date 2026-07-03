@@ -541,6 +541,20 @@ chmod 0755 "$LAUNCHER"; chown root:root "$LAUNCHER"
 tw_clear() { command clear 2>/dev/null || printf '\033[2J\033[3J\033[H'; }
 tw_pause() { printf '\n  [enter] to continue '; read -r _ <&3 || true; }
 
+# ONE install action: press enter = local; paste a RAW message-file URL = sync.
+menu_install() {
+    printf '\n  Install / update.\n'
+    printf '   - press ENTER to keep it LOCAL (edit the banner on this host)\n'
+    printf '   - or paste a RAW message-file URL to SYNC from a repo, e.g.\n'
+    printf '       https://raw.githubusercontent.com/USER/REPO/main/message.txt\n'
+    printf '  > '
+    read -r _u <&3 || _u=''
+    case "$_u" in
+        http://*|https://*) SYNC_URL="$_u"; do_install sync ;;
+        *) do_install local ;;
+    esac
+}
+
 do_preview() {
     if [[ -x "$RENDERER" ]]; then "$RENDERER" || true; else echo "(not installed yet — choose Install)"; fi
 }
@@ -575,15 +589,14 @@ menu() {
     while true; do
         tw_clear
         printf '  Terminal Welcome Message\n  ========================\n\n'
-        printf '   1) Install / update (local, no sync)\n   2) Install with GitHub sync\n   3) Edit the banner\n   4) Preview\n   5) Uninstall\n   6) Quit\n\n  Choose [1-6]: '
-        read -r c <&3 || c=6
+        printf '   1) Install / update\n   2) Edit the banner\n   3) Preview\n   4) Uninstall\n   5) Quit\n\n  Choose [1-5]: '
+        read -r c <&3 || c=5
         case "$c" in
-            1) do_install local; tw_pause ;;
-            2) do_install sync; tw_pause ;;
-            3) do_edit; tw_pause ;;
-            4) do_preview; tw_pause ;;
-            5) uninstall_body; exit 0 ;;
-            6) exit 0 ;;
+            1) menu_install; tw_pause ;;
+            2) do_edit; tw_pause ;;
+            3) do_preview; tw_pause ;;
+            4) uninstall_body; exit 0 ;;
+            5) exit 0 ;;
             *) : ;;
         esac
     done
