@@ -121,3 +121,7 @@ sync mode only the template *text* is.
 | `examples/` | ready-made templates |
 | `tools/preview.sh` | preview a template with sample data |
 | `tools/render-svg.py` | generate the README screenshots |
+
+## License
+
+[Apache-2.0](LICENSE) © Carlboms Data AB.
